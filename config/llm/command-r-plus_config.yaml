@@ -6,5 +6,5 @@
         { "role": "CHATBOT", "message": "承知しました。何について話しましょうか？"}]
 "stop_sequences": ["</output>"]
 
-"stream": true
+"stream": false
 "model_id": "cohere.command-r-plus-v1:0"
