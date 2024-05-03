@@ -41,19 +41,18 @@ def main(args: argparse.Namespace) -> None:
     retriever = Retriever(args.kb_id, args.region)
     llm = LLM(args.region, prompt_conf.model_id, prompt_conf.is_stream)
 
+    # Retrieve contexts
     retrieval_results = retriever.retrieve(prompt_conf.query)
     contexts = retriever.get_contexts(retrieval_results)
+
+    # Augument prompt
     prompt_conf.format_prompt({"contexts": contexts, "query": prompt_conf.query})
     prompt_conf.format_message({"prompt": prompt_conf.prompt})
     body = json.dumps(prompt_conf.config)
 
-    try:
-        generated_text = llm.generate(body)
-        print(generated_text)
-    except ClientError as err:
-        message = err.response["Error"]["Message"]
-        logger.error("A client error occurred: %s", message)
-        print("A client error occured: " + format(message))
+    # Generate message
+    generated_text = llm.generate(body)
+    print(generated_text)
 
 
 if __name__ == "__main__":
