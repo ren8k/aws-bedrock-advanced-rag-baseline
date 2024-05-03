@@ -2,12 +2,12 @@
 "max_tokens": 1000
 "temperature": 0
 "system": "Respond only in Japanese"
-
 # https://docs.anthropic.com/claude/docs/control-output-format#prefilling-claudes-response
 "messages":
     [{ "role": "user", "content": [{ "type": "text", "text": "{prompt}" }] },
     {"role": "assistant", "content": [{ "type": "text", "text": "{" }]}]
 "stop_sequences": ["</output>"]
+
 "stream": false
 "model_id": "anthropic.claude-3-haiku-20240307-v1:0"
 # "model_id": "anthropic.claude-3-sonnet-20240229-v1:0"
