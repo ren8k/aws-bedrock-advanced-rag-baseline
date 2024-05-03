@@ -32,8 +32,6 @@ class PromptConfig:
                     "question": self.query,
                 },
             )
-            # https://docs.anthropic.com/claude/docs/control-output-format#prefilling-claudes-response
-            self.prompt_query_expansion += "\n{"
             self.retries = self.query_expansion_conf["retries"]
 
     def _load_config(self, config_path: str) -> Any:

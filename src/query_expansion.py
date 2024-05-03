@@ -28,11 +28,11 @@ def get_args() -> argparse.Namespace:
 def query_expansion(llm: LLM, prompt_conf: PromptConfig) -> None:
     prompt_conf.format_message({"prompt": prompt_conf.prompt_query_expansion})
     body = json.dumps(prompt_conf.config)
-    generate_text = llm.generate(body)
 
     for attempt in range(prompt_conf.retries):
         try:
-            generate_text = llm.generate(body)
+            generate_text = "{" + llm.generate(body)
+            print(generate_text)
             query_expanded = json.loads(generate_text)
             return query_expanded
         except json.JSONDecodeError:
@@ -46,16 +46,21 @@ def query_expansion(llm: LLM, prompt_conf: PromptConfig) -> None:
 
 
 def main(args: argparse.Namespace) -> None:
-    config_path = "../config/llm/claude-3_cofig.yaml"
+    config_llm_path = "../config/llm/claude-3_cofig.yaml"
+    config_llm_expansion_path = "../config/llm/claude-3_query_expansion_config.yaml"
     # config_path = "../config/llm/command-r-plus_config.yaml"
     template_path = "../config/prompt_template/prompt_template.yaml"
     query_path = "../config/query/query.yaml"
     query_expansion_tempate_path = "../config/query/query_expansion.yaml"
 
-    prompt_conf = PromptConfig(
-        config_path, template_path, query_path, query_expansion_tempate_path
-    )
     retriever = Retriever(args.kb_id, args.region)
+
+    prompt_conf = PromptConfig(
+        config_llm_expansion_path,
+        template_path,
+        query_path,
+        query_expansion_tempate_path,
+    )
     llm = LLM(args.region, prompt_conf.model_id, prompt_conf.is_stream)
 
     # Query Expansion
