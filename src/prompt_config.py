@@ -20,6 +20,8 @@ class PromptConfig:
         self.model_id = self.config.pop("model_id")
         self.prompt = ""
         self.is_stream = self.config.pop("stream")
+
+        # Query Expansion
         if query_expansion_tempate_path:
             self.query_expansion_conf = self._load_config(query_expansion_tempate_path)
             self.prompt_query_expansion = self._format_template(
@@ -30,6 +32,9 @@ class PromptConfig:
                     "question": self.query,
                 },
             )
+            # https://docs.anthropic.com/claude/docs/control-output-format#prefilling-claudes-response
+            self.prompt_query_expansion += "\n{"
+            self.retries = self.query_expansion_conf["retries"]
 
     def _load_config(self, config_path: str) -> Any:
         with open(config_path, "r") as file:
