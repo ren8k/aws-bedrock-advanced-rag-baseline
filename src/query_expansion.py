@@ -47,8 +47,8 @@ def query_expansion(llm: LLM, prompt_conf: PromptConfig) -> None:
 
 def main(args: argparse.Namespace) -> None:
     config_llm_path = "../config/llm/claude-3_cofig.yaml"
+    # config_llm_path = "../config/llm/command-r-plus_config.yaml"
     config_llm_expansion_path = "../config/llm/claude-3_query_expansion_config.yaml"
-    # config_path = "../config/llm/command-r-plus_config.yaml"
     template_path = "../config/prompt_template/prompt_template.yaml"
     template_query_expansion_path = "../config/prompt_template/query_expansion.yaml"
     query_path = "../config/query/query.yaml"
