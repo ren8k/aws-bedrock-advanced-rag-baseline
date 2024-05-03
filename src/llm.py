@@ -26,7 +26,7 @@ class LLM:
         response = self.bedrock_runtime.invoke_model(body=body, modelId=model_id)
         response_body = json.loads(response.get("body").read())
         generated_text = self._get_generated_text(response_body, model_id)
-        print(generated_text)
+        return generated_text
 
     def _get_generated_text(self, response_body: dict, model_id: str) -> Any:
         if "claude-3" in model_id:
