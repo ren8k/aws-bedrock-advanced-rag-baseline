@@ -1,8 +1,13 @@
 import json
+import logging
 from typing import Any
 
 import boto3
 from botocore.config import Config
+from botocore.exceptions import ClientError
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 
 class LLM:
@@ -24,10 +29,16 @@ class LLM:
             self.generate = self.generate_message
 
     def generate_message(self, body: str) -> None:
-        response = self.bedrock_runtime.invoke_model(body=body, modelId=self.model_id)
-        response_body = json.loads(response.get("body").read())
-        generated_text = self._get_generated_text(response_body)
-        return generated_text
+        try:
+            response = self.bedrock_runtime.invoke_model(
+                body=body, modelId=self.model_id
+            )
+            response_body = json.loads(response.get("body").read())
+            generated_text = self._get_generated_text(response_body)
+            return generated_text
+        except ClientError as err:
+            message = err.response["Error"]["Message"]
+            logger.error("A client error occurred: %s", message)
 
     def _get_generated_text(self, response_body: dict) -> Any:
         if "claude-3" in self.model_id:
@@ -36,11 +47,15 @@ class LLM:
             return response_body["text"]
 
     def generate_stream_message(self, body: str) -> None:
-        response = self.bedrock_runtime.invoke_model_with_response_stream(
-            body=body, modelId=self.model_id
-        )
-        for event in response.get("body"):
-            self._show_generated_stream_text(event)
+        try:
+            response = self.bedrock_runtime.invoke_model_with_response_stream(
+                body=body, modelId=self.model_id
+            )
+            for event in response.get("body"):
+                self._show_generated_stream_text(event)
+        except ClientError as err:
+            message = err.response["Error"]["Message"]
+            logger.error("A client error occurred: %s", message)
 
     # TODO: split method for each model.
     def _show_generated_stream_text(self, event: dict) -> None:
