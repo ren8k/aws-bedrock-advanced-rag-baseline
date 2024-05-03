@@ -31,8 +31,10 @@ def query_expansion(llm: LLM, prompt_conf: PromptConfig) -> None:
 
     for attempt in range(prompt_conf.retries):
         try:
-            generate_text = "{" + llm.generate(body)
-            print(generate_text)
+            if "claude-3" in llm.model_id:
+                generate_text = "{" + llm.generate(body)
+            else:
+                generate_text = llm.generate(body)
             query_expanded = json.loads(generate_text)
             return query_expanded
         except json.JSONDecodeError:
@@ -47,14 +49,18 @@ def query_expansion(llm: LLM, prompt_conf: PromptConfig) -> None:
 
 def main(args: argparse.Namespace) -> None:
     config_llm_path = "../config/llm/claude-3_cofig.yaml"
-    # config_llm_path = "../config/llm/command-r-plus_config.yaml"
     config_llm_expansion_path = "../config/llm/claude-3_query_expansion_config.yaml"
+    # config_llm_path = "../config/llm/command-r-plus_config.yaml"
+    # config_llm_expansion_path = (
+    #     "../config/llm/command-r-plus_query_expansion_config.yaml"
+    # )
     template_path = "../config/prompt_template/prompt_template.yaml"
     template_query_expansion_path = "../config/prompt_template/query_expansion.yaml"
     query_path = "../config/query/query.yaml"
 
     retriever = Retriever(args.kb_id, args.region)
 
+    # Query Expansion
     prompt_conf = PromptConfig(
         config_llm_expansion_path,
         template_query_expansion_path,
@@ -63,11 +69,28 @@ def main(args: argparse.Namespace) -> None:
     )
     llm = LLM(args.region, prompt_conf.model_id, prompt_conf.is_stream)
 
-    # Query Expansion
+    # TODO: 上記2つは、query_expansionメソッド内で定義する
     query_expanded = query_expansion(llm, prompt_conf)
-    print(query_expanded)
+    # print(query_expanded)
 
-    # Retrival
+    # Retrival contexts
+    multi_retrieval_results = retriever.retrieve_multiple_queries(
+        args.kb_id, args.region, query_expanded
+    )
+    multi_contexts = retriever.get_multiple_contexts(multi_retrieval_results)
+    # print(multi_contexts)
+    # print(len(multi_contexts))
+
+    # TODO: どれくらいお金かかるか不安
+    # Augument prompt
+    prompt_conf = PromptConfig(config_llm_path, template_path, query_path)
+    prompt_conf.format_prompt({"contexts": multi_contexts, "query": prompt_conf.query})
+    prompt_conf.format_message({"prompt": prompt_conf.prompt})
+    body = json.dumps(prompt_conf.config)
+
+    # Generate message
+    generated_text = llm.generate(body)
+    print(generated_text)
 
 
 if __name__ == "__main__":

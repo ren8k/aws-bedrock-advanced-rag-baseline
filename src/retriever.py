@@ -1,3 +1,5 @@
+import concurrent.futures
+
 import boto3
 from botocore.client import Config
 
@@ -33,3 +35,34 @@ class Retriever:
         for retrievedResult in retrievalResults:
             contexts.append(retrievedResult["content"]["text"])
         return contexts
+
+    def get_multiple_contexts(self, multiretrievalResults: list) -> list:
+        multi_contexts = []
+        for query, retrievedResults in multiretrievalResults.items():
+            contexts = self.get_contexts(retrievedResults)
+            # multi_contextsにcontextsを追加
+            multi_contexts += contexts
+        return multi_contexts
+
+    @classmethod
+    def retrieve_multiple_queries(cls, kb_id: str, region: str, queries: dict) -> dict:
+        retriever = cls(kb_id, region)
+        results = {}
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=len(queries)
+        ) as executor:
+            # フューチャー（未来の結果）を辞書に格納
+            futures = {
+                executor.submit(retriever.retrieve, query): key
+                for key, query in queries.items()
+            }
+            for future in concurrent.futures.as_completed(futures):
+                key = futures[future]
+                try:
+                    result = future.result()
+                except Exception as e:
+                    results[key] = str(e)
+                else:
+                    results[key] = result
+
+        return results
