@@ -6,7 +6,13 @@ import yaml
 
 
 class PromptConfig:
-    def __init__(self, config_path: str, template_path: str, query_path: str) -> None:
+    def __init__(
+        self,
+        config_path: str,
+        template_path: str,
+        query_path: str,
+        query_expansion_tempate_path: str = None,
+    ) -> None:
         self.config = self._load_config(config_path)
         self.config_org = copy.deepcopy(self.config)
         self.template = self._load_config(template_path)["template"]
@@ -14,6 +20,16 @@ class PromptConfig:
         self.model_id = self.config.pop("model_id")
         self.prompt = ""
         self.is_stream = self.config.pop("stream")
+        if query_expansion_tempate_path:
+            self.query_expansion_conf = self._load_config(query_expansion_tempate_path)
+            self.prompt_query_expansion = self._format_template(
+                self.query_expansion_conf["template"],
+                {
+                    "n_queries": self.query_expansion_conf["n_queries"],
+                    "output_format": self.query_expansion_conf["output_format"],
+                    "question": self.query,
+                },
+            )
 
     def _load_config(self, config_path: str) -> Any:
         with open(config_path, "r") as file:
@@ -38,6 +54,10 @@ class PromptConfig:
         message = self.config["message"]
         self._check_args(message, args)
         self.config["message"] = message.format(**args)
+
+    def _format_template(self, template: str, args: dict) -> None:
+        self._check_args(template, args)
+        return template.format(**args)
 
     # https://github.com/taikinman/langrila/blob/main/src/langrila/prompt_template.py#L34
     def _check_args(self, template: str, args: dict) -> None:
