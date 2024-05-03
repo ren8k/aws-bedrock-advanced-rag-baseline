@@ -50,16 +50,16 @@ def main(args: argparse.Namespace) -> None:
     config_llm_expansion_path = "../config/llm/claude-3_query_expansion_config.yaml"
     # config_path = "../config/llm/command-r-plus_config.yaml"
     template_path = "../config/prompt_template/prompt_template.yaml"
+    template_query_expansion_path = "../config/prompt_template/query_expansion.yaml"
     query_path = "../config/query/query.yaml"
-    query_expansion_tempate_path = "../config/query/query_expansion.yaml"
 
     retriever = Retriever(args.kb_id, args.region)
 
     prompt_conf = PromptConfig(
         config_llm_expansion_path,
-        template_path,
+        template_query_expansion_path,
         query_path,
-        query_expansion_tempate_path,
+        is_query_expansion=True,
     )
     llm = LLM(args.region, prompt_conf.model_id, prompt_conf.is_stream)
 

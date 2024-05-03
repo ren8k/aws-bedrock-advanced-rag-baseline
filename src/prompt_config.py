@@ -11,7 +11,7 @@ class PromptConfig:
         config_path: str,
         template_path: str,
         query_path: str,
-        query_expansion_tempate_path: str = None,
+        is_query_expansion: bool = False,
     ) -> None:
         self.config = self._load_config(config_path)
         self.config_org = copy.deepcopy(self.config)
@@ -22,10 +22,10 @@ class PromptConfig:
         self.is_stream = self.config.pop("stream")
 
         # Query Expansion
-        if query_expansion_tempate_path:
-            self.query_expansion_conf = self._load_config(query_expansion_tempate_path)
+        if is_query_expansion:
+            self.query_expansion_conf = self._load_config(template_path)
             self.prompt_query_expansion = self._format_template(
-                self.query_expansion_conf["template"],
+                self.template,
                 {
                     "n_queries": self.query_expansion_conf["n_queries"],
                     "output_format": self.query_expansion_conf["output_format"],
