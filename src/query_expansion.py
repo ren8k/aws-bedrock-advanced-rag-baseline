@@ -1,15 +1,9 @@
 import argparse
 import json
-import logging
-
-from botocore.exceptions import ClientError
 
 from llm import LLM
 from prompt_config import PromptConfig
 from retriever import Retriever
-
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 
 
 def get_args() -> argparse.Namespace:
@@ -34,16 +28,21 @@ def get_args() -> argparse.Namespace:
 def query_expansion(llm: LLM, prompt_conf: PromptConfig) -> None:
     prompt_conf.format_message({"prompt": prompt_conf.prompt_query_expansion})
     body = json.dumps(prompt_conf.config)
+    generate_text = llm.generate(body)
 
-    try:
-        generate_text = llm.generate(body)
-    except ClientError as err:
-        message = err.response["Error"]["Message"]
-        logger.error("A client error occurred: %s", message)
-        print("A client error occured: " + format(message))
-
-    query_expanded = json.loads(generate_text)
-    return query_expanded
+    for attempt in range(prompt_conf.retries):
+        try:
+            generate_text = llm.generate(body)
+            query_expanded = json.loads(generate_text)
+            return query_expanded
+        except json.JSONDecodeError:
+            if attempt < prompt_conf.retries - 1:
+                print(
+                    f"Failed to decode JSON, retrying... (Attempt {attempt + 1}/{prompt_conf.retries})"
+                )
+                continue
+            else:
+                raise Exception("Failed to decode JSON after several retries.")
 
 
 def main(args: argparse.Namespace) -> None:
