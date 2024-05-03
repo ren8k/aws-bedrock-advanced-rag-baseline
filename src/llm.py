@@ -6,7 +6,7 @@ from botocore.config import Config
 
 
 class LLM:
-    def __init__(self, region: str, is_stream: bool = False) -> None:
+    def __init__(self, region: str, model_id: str, is_stream: bool = False) -> None:
         retry_config = Config(
             region_name=region,
             retries={
@@ -17,33 +17,34 @@ class LLM:
         self.bedrock_runtime = boto3.client(
             "bedrock-runtime", config=retry_config, region_name=region
         )
+        self.model_id = model_id
         if is_stream:
             self.generate = self.generate_stream_message
         else:
             self.generate = self.generate_message
 
-    def generate_message(self, body: str, model_id: str) -> None:
-        response = self.bedrock_runtime.invoke_model(body=body, modelId=model_id)
+    def generate_message(self, body: str) -> None:
+        response = self.bedrock_runtime.invoke_model(body=body, modelId=self.model_id)
         response_body = json.loads(response.get("body").read())
-        generated_text = self._get_generated_text(response_body, model_id)
+        generated_text = self._get_generated_text(response_body)
         return generated_text
 
-    def _get_generated_text(self, response_body: dict, model_id: str) -> Any:
-        if "claude-3" in model_id:
+    def _get_generated_text(self, response_body: dict) -> Any:
+        if "claude-3" in self.model_id:
             return response_body["content"][0]["text"]
-        elif "command-r-plus" in model_id:
+        elif "command-r-plus" in self.model_id:
             return response_body["text"]
 
-    def generate_stream_message(self, body: str, model_id: str) -> None:
+    def generate_stream_message(self, body: str) -> None:
         response = self.bedrock_runtime.invoke_model_with_response_stream(
-            body=body, modelId=model_id
+            body=body, modelId=self.model_id
         )
         for event in response.get("body"):
-            self._show_generated_stream_text(event, model_id)
+            self._show_generated_stream_text(event)
 
     # TODO: split method for each model.
-    def _show_generated_stream_text(self, event: dict, model_id: str) -> None:
-        if "claude-3" in model_id:
+    def _show_generated_stream_text(self, event: dict) -> None:
+        if "claude-3" in self.model_id:
             chunk = json.loads(event["chunk"]["bytes"])
             if chunk["type"] == "content_block_delta":
                 if chunk["delta"]["type"] == "text_delta":
@@ -54,7 +55,7 @@ class LLM:
                 print(f"Stop sequence: {chunk['delta']['stop_sequence']}")
                 print(f"Output tokens: {chunk['usage']['output_tokens']}")
 
-        elif "command-r-plus" in model_id:
+        elif "command-r-plus" in self.model_id:
             # https://docs.cohere.com/docs/streaming
             chunk = json.loads(event["chunk"]["bytes"])
             if chunk["event_type"] == "text-generation":

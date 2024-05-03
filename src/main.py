@@ -39,7 +39,7 @@ def main(args: argparse.Namespace) -> None:
 
     prompt_conf = PromptConfig(config_path, template_path, query_path)
     retriever = Retriever(args.kb_id, args.region)
-    llm = LLM(args.region, prompt_conf.is_stream)
+    llm = LLM(args.region, prompt_conf.model_id, prompt_conf.is_stream)
 
     retrieval_results = retriever.retrieve(prompt_conf.query)
     contexts = retriever.get_contexts(retrieval_results)
@@ -48,7 +48,8 @@ def main(args: argparse.Namespace) -> None:
     body = json.dumps(prompt_conf.config)
 
     try:
-        llm.generate(body, prompt_conf.model_id)
+        generated_text = llm.generate(body)
+        print(generated_text)
     except ClientError as err:
         message = err.response["Error"]["Message"]
         logger.error("A client error occurred: %s", message)

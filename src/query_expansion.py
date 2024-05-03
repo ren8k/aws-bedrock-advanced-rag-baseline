@@ -36,7 +36,7 @@ def query_expansion(llm: LLM, prompt_conf: PromptConfig) -> None:
     body = json.dumps(prompt_conf.config)
 
     try:
-        generate_text = llm.generate(body, prompt_conf.model_id)
+        generate_text = llm.generate(body)
     except ClientError as err:
         message = err.response["Error"]["Message"]
         logger.error("A client error occurred: %s", message)
@@ -57,7 +57,7 @@ def main(args: argparse.Namespace) -> None:
         config_path, template_path, query_path, query_expansion_tempate_path
     )
     retriever = Retriever(args.kb_id, args.region)
-    llm = LLM(args.region, prompt_conf.is_stream)
+    llm = LLM(args.region, prompt_conf.model_id, prompt_conf.is_stream)
 
     # Query Expansion
     query_expanded = query_expansion(llm, prompt_conf)
