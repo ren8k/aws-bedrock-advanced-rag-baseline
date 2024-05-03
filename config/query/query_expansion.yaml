@@ -1,3 +1,4 @@
+retries: 3
 n_queries: 3
 output_format: |
   {
