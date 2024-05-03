@@ -3,7 +3,7 @@
 "message": "{prompt}"
 "chat_history":
         [{ "role": "USER", "message": "Respond only in Japanese" },
-        { "role": "CHATBOT", "message": "Sure. What would you like to talk about?"}]
+        { "role": "CHATBOT", "message": "承知しました。何について話しましょうか？"}]
 "stop_sequences": ["</output>"]
 
 "stream": true
