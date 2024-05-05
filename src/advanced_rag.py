@@ -83,6 +83,7 @@ def main(args: argparse.Namespace) -> None:
     prompt_conf = PromptConfig(
         config["config_llm_rag_path"], config["template_rag_path"], config["query_path"]
     )
+    llm = LLM(args.region, prompt_conf.model_id, prompt_conf.is_stream)
     prompt_conf.format_prompt({"contexts": multi_contexts, "query": prompt_conf.query})
     prompt_conf.format_message({"prompt": prompt_conf.prompt})
     body = json.dumps(prompt_conf.config)
