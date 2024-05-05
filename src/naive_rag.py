@@ -7,6 +7,7 @@ from botocore.exceptions import ClientError
 from llm import LLM
 from prompt_config import PromptConfig
 from retriever import Retriever
+from utils import load_yaml
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -28,17 +29,22 @@ def get_args() -> argparse.Namespace:
         default="us-east-1",
         help="The AWS region where the Knowledge Base is located.",
     )
+    parser.add_argument(
+        "--config-path",
+        type=str,
+        default="../config/config.yaml",
+        help="The path to the configuration YAML file.",
+    )
     return parser.parse_args()
 
 
 def main(args: argparse.Namespace) -> None:
-    config_llm_rag_path = "../config/llm/claude-3_rag.yaml"
-    # config_llm_rag_path = "../config/llm/command-r-plus_basic.yaml"
-    template_path = "../config/prompt_template/prompt_rag.yaml"
-    query_path = "../config/query/query.yaml"
+    config = load_yaml(args.config_path)
 
     retriever = Retriever(args.kb_id, args.region)
-    prompt_conf = PromptConfig(config_llm_rag_path, template_path, query_path)
+    prompt_conf = PromptConfig(
+        config["config_llm_rag_path"], config["template_rag_path"], config["query_path"]
+    )
     llm = LLM(args.region, prompt_conf.model_id, prompt_conf.is_stream)
 
     # Retrieve contexts

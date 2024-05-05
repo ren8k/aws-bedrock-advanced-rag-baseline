@@ -4,6 +4,8 @@ from typing import Any
 
 import yaml
 
+import utils
+
 
 class PromptConfig:
     def __init__(
@@ -14,17 +16,17 @@ class PromptConfig:
         is_query_expansion: bool = False,
         is_relevance_eval: bool = False,
     ) -> None:
-        self.config = self._load_yaml(config_path)
+        self.config = utils.load_yaml(config_path)
         self.config_org = copy.deepcopy(self.config)
-        self.template = self._load_yaml(template_path)["template"]
-        self.query = self._load_yaml(query_path)["query"]
+        self.template = utils.load_yaml(template_path)["template"]
+        self.query = utils.load_yaml(query_path)["query"]
         self.model_id = self.config.pop("model_id")
         self.prompt = ""
         self.is_stream = self.config.pop("stream")
 
         # Query Expansion
         if is_query_expansion:
-            self.query_expansion_conf = self._load_yaml(template_path)
+            self.query_expansion_conf = utils.load_yaml(template_path)
             self.prompt_query_expansion = self._format_template(
                 self.template,
                 {
@@ -36,11 +38,7 @@ class PromptConfig:
             self.retries = self.query_expansion_conf["retries"]
 
         if is_relevance_eval:
-            self.relevance_eval_conf = self._load_yaml(template_path)
-
-    def _load_yaml(self, config_path: str) -> Any:
-        with open(config_path, "r") as file:
-            return yaml.safe_load(file)
+            self.relevance_eval_conf = utils.load_yaml(template_path)
 
     def format_prompt(self, args: dict) -> None:
         self._check_args(self.template, args)
