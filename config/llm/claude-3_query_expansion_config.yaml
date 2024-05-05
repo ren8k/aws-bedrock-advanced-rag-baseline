@@ -2,8 +2,10 @@
 "max_tokens": 1000
 "temperature": 0
 "system": "Respond only in Japanese"
+# https://docs.anthropic.com/claude/docs/control-output-format#prefilling-claudes-response
 "messages":
-    [{ "role": "user", "content": [{ "type": "text", "text": "{prompt}" }] }]
+    [{ "role": "user", "content": [{ "type": "text", "text": "{prompt}" }] },
+    {"role": "assistant", "content": [{ "type": "text", "text": "{" }]}]
 "stop_sequences": ["</output>"]
 
 "stream": false
