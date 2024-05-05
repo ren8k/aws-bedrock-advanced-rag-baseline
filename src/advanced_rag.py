@@ -25,42 +25,22 @@ def get_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def query_expansion(llm: LLM, prompt_conf: PromptConfig) -> None:
-    prompt_conf.format_message({"prompt": prompt_conf.prompt_query_expansion})
-    body = json.dumps(prompt_conf.config)
-
-    for attempt in range(prompt_conf.retries):
-        try:
-            if "claude-3" in llm.model_id:
-                generate_text = "{" + llm.generate(body)
-            else:
-                generate_text = llm.generate(body)
-            query_expanded = json.loads(generate_text)
-            return query_expanded
-        except json.JSONDecodeError:
-            if attempt < prompt_conf.retries - 1:
-                print(
-                    f"Failed to decode JSON, retrying... (Attempt {attempt + 1}/{prompt_conf.retries})"
-                )
-                continue
-            else:
-                raise Exception("Failed to decode JSON after several retries.")
-
-
 def main(args: argparse.Namespace) -> None:
     config_llm_path = "../config/llm/claude-3_cofig.yaml"
     config_llm_expansion_path = "../config/llm/claude-3_query_expansion_config.yaml"
+    config_llm_relevance_eval_path = "../config/llm/claude-3_relevance_eval_config.yaml"
     # config_llm_path = "../config/llm/command-r-plus_config.yaml"
     # config_llm_expansion_path = (
     #     "../config/llm/command-r-plus_query_expansion_config.yaml"
     # )
     template_path = "../config/prompt_template/prompt_template.yaml"
     template_query_expansion_path = "../config/prompt_template/query_expansion.yaml"
+    template_relevance_eval_path = "../config/prompt_template/relevance_eval.yaml"
     query_path = "../config/query/query.yaml"
 
     retriever = Retriever(args.kb_id, args.region)
 
-    # Query Expansion
+    # step1. Query Expansion
     prompt_conf = PromptConfig(
         config_llm_expansion_path,
         template_query_expansion_path,
@@ -68,27 +48,39 @@ def main(args: argparse.Namespace) -> None:
         is_query_expansion=True,
     )
     llm = LLM(args.region, prompt_conf.model_id, prompt_conf.is_stream)
+    queries_expanded = llm.expand_queries(prompt_conf)
 
-    # TODO: 上記2つは、query_expansionメソッド内で定義する
-    query_expanded = query_expansion(llm, prompt_conf)
-    # print(query_expanded)
-
-    # Retrival contexts
-    multi_retrieval_results = retriever.retrieve_multiple_queries(
-        args.kb_id, args.region, query_expanded
+    # step2. Retrival contexts
+    multi_retrieved_results = retriever.retrieve_parallel(
+        args.kb_id, args.region, queries_expanded
     )
-    multi_contexts = retriever.get_multiple_contexts(multi_retrieval_results)
-    # print(multi_contexts)
-    # print(len(multi_contexts))
 
-    # TODO: どれくらいお金かかるか不安
-    # Augument prompt
+    # 計20個のcontextsが格納される
+    multi_contexts = retriever.get_multiple_contexts(multi_retrieved_results)
+
+    # step3. Relevance evaluation
+    prompt_conf = PromptConfig(
+        config_llm_relevance_eval_path,
+        template_relevance_eval_path,
+        query_path,
+        is_relevance_eval=True,
+    )
+    prompts_and_contexts = prompt_conf.create_prompts_for_relevance_eval(
+        queries_expanded, multi_contexts
+    )
+    print(len(prompts_and_contexts))
+    multi_contexts = llm.eval_relevance_parallel(
+        args.region, prompt_conf.model_id, prompt_conf, prompts_and_contexts
+    )
+    print(len(multi_contexts))
+
+    # step4. Augument prompt
     prompt_conf = PromptConfig(config_llm_path, template_path, query_path)
     prompt_conf.format_prompt({"contexts": multi_contexts, "query": prompt_conf.query})
     prompt_conf.format_message({"prompt": prompt_conf.prompt})
     body = json.dumps(prompt_conf.config)
 
-    # Generate message
+    # step5. Generate message
     generated_text = llm.generate(body)
     print(generated_text)
 

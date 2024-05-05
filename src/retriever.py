@@ -38,14 +38,14 @@ class Retriever:
 
     def get_multiple_contexts(self, multiretrievalResults: list) -> list:
         multi_contexts = []
-        for query, retrievedResults in multiretrievalResults.items():
+        for _, retrievedResults in multiretrievalResults.items():
             contexts = self.get_contexts(retrievedResults)
             # multi_contextsにcontextsを追加
             multi_contexts += contexts
         return multi_contexts
 
     @classmethod
-    def retrieve_multiple_queries(cls, kb_id: str, region: str, queries: dict) -> dict:
+    def retrieve_parallel(cls, kb_id: str, region: str, queries: dict) -> dict:
         retriever = cls(kb_id, region)
         results = {}
         with concurrent.futures.ThreadPoolExecutor(
