@@ -2,8 +2,6 @@ import argparse
 import json
 import logging
 
-from botocore.exceptions import ClientError
-
 from llm import LLM
 from prompt_config import PromptConfig
 from retriever import Retriever
@@ -58,7 +56,7 @@ def main(args: argparse.Namespace) -> None:
 
     # Generate message
     generated_text = llm.generate(body)
-    print(generated_text)
+    logger.info(generated_text)
 
 
 if __name__ == "__main__":
