@@ -1,3 +1,4 @@
+import copy
 import json
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -117,13 +118,10 @@ class LLM:
     ) -> list:
         results = []
 
-        import copy
-
         def generate_single_message(llm: LLM, prompt_and_context: dict):
             prompt_conf_tmp = copy.deepcopy(prompt_conf)
             prompt_conf_tmp.format_message({"prompt": prompt_and_context["prompt"]})
             body = json.dumps(prompt_conf_tmp.config)
-
             is_relevant = llm.generate_message(body)
 
             if is_relevant == "True":
