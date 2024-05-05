@@ -1,0 +1,7 @@
+config_llm_rag_path: ../config/llm/claude-3_rag.yaml
+config_llm_expansion_path: ../config/llm/claude-3_query_expansion.yaml
+config_llm_relevance_eval_path: ../config/llm/claude-3_relevance_eval.yaml
+template_rag_path: ../config/prompt_template/rag.yaml
+template_query_expansion_path: ../config/prompt_template/query_expansion.yaml
+template_relevance_eval_path: ../config/prompt_template/relevance_eval.yaml
+query_path: ../config/query/query.yaml
