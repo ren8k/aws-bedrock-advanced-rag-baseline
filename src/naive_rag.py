@@ -32,13 +32,13 @@ def get_args() -> argparse.Namespace:
 
 
 def main(args: argparse.Namespace) -> None:
-    config_path = "../config/llm/claude-3_cofig.yaml"
-    # config_path = "../config/llm/command-r-plus_config.yaml"
-    template_path = "../config/prompt_template/prompt_template.yaml"
+    config_llm_rag_path = "../config/llm/claude-3_rag.yaml"
+    # config_llm_rag_path = "../config/llm/command-r-plus_basic.yaml"
+    template_path = "../config/prompt_template/prompt_rag.yaml"
     query_path = "../config/query/query.yaml"
 
     retriever = Retriever(args.kb_id, args.region)
-    prompt_conf = PromptConfig(config_path, template_path, query_path)
+    prompt_conf = PromptConfig(config_llm_rag_path, template_path, query_path)
     llm = LLM(args.region, prompt_conf.model_id, prompt_conf.is_stream)
 
     # Retrieve contexts

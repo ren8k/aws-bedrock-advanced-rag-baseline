@@ -26,14 +26,10 @@ def get_args() -> argparse.Namespace:
 
 
 def main(args: argparse.Namespace) -> None:
-    config_llm_path = "../config/llm/claude-3_cofig.yaml"
-    config_llm_expansion_path = "../config/llm/claude-3_query_expansion_config.yaml"
-    config_llm_relevance_eval_path = "../config/llm/claude-3_relevance_eval_config.yaml"
-    # config_llm_path = "../config/llm/command-r-plus_config.yaml"
-    # config_llm_expansion_path = (
-    #     "../config/llm/command-r-plus_query_expansion_config.yaml"
-    # )
-    template_path = "../config/prompt_template/prompt_template.yaml"
+    config_llm_rag_path = "../config/llm/claude-3_rag.yaml"
+    config_llm_expansion_path = "../config/llm/claude-3_query_expansion.yaml"
+    config_llm_relevance_eval_path = "../config/llm/claude-3_relevance_eval.yaml"
+    template_path = "../config/prompt_template/prompt_rag.yaml"
     template_query_expansion_path = "../config/prompt_template/query_expansion.yaml"
     template_relevance_eval_path = "../config/prompt_template/relevance_eval.yaml"
     query_path = "../config/query/query.yaml"
@@ -75,7 +71,7 @@ def main(args: argparse.Namespace) -> None:
     print(len(multi_contexts))
 
     # step4. Augument prompt
-    prompt_conf = PromptConfig(config_llm_path, template_path, query_path)
+    prompt_conf = PromptConfig(config_llm_rag_path, template_path, query_path)
     prompt_conf.format_prompt({"contexts": multi_contexts, "query": prompt_conf.query})
     prompt_conf.format_message({"prompt": prompt_conf.prompt})
     body = json.dumps(prompt_conf.config)
