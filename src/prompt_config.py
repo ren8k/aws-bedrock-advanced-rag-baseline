@@ -4,20 +4,41 @@ from typing import Any
 
 import yaml
 
+import utils
+
 
 class PromptConfig:
-    def __init__(self, config_path: str, template_path: str, query_path: str) -> None:
-        self.config = self._load_config(config_path)
+    def __init__(
+        self,
+        config_path: str,
+        template_path: str,
+        query_path: str,
+        is_query_expansion: bool = False,
+        is_relevance_eval: bool = False,
+    ) -> None:
+        self.config = utils.load_yaml(config_path)
         self.config_org = copy.deepcopy(self.config)
-        self.template = self._load_config(template_path)["template"]
-        self.query = self._load_config(query_path)["query"]
+        self.template = utils.load_yaml(template_path)["template"]
+        self.query = utils.load_yaml(query_path)["query"]
         self.model_id = self.config.pop("model_id")
         self.prompt = ""
         self.is_stream = self.config.pop("stream")
 
-    def _load_config(self, config_path: str) -> Any:
-        with open(config_path, "r") as file:
-            return yaml.safe_load(file)
+        # Query Expansion
+        if is_query_expansion:
+            self.query_expansion_conf = utils.load_yaml(template_path)
+            self.prompt_query_expansion = self._format_template(
+                self.template,
+                {
+                    "n_queries": self.query_expansion_conf["n_queries"],
+                    "output_format": self.query_expansion_conf["output_format"],
+                    "question": self.query,
+                },
+            )
+            self.retries = self.query_expansion_conf["retries"]
+
+        if is_relevance_eval:
+            self.relevance_eval_conf = utils.load_yaml(template_path)
 
     def format_prompt(self, args: dict) -> None:
         self._check_args(self.template, args)
@@ -38,6 +59,28 @@ class PromptConfig:
         message = self.config["message"]
         self._check_args(message, args)
         self.config["message"] = message.format(**args)
+
+    def _format_template(self, template: str, args: dict) -> None:
+        self._check_args(template, args)
+        return template.format(**args)
+
+    def create_prompts_for_relevance_eval(
+        self, query_expanded: dict, multi_contexts: list
+    ) -> list:
+        prompts = []
+        for context in multi_contexts:
+            prompt = self._format_template(
+                self.template,
+                {
+                    "context": context,
+                    "question": self.query,
+                    "format_instructions": self.relevance_eval_conf[
+                        "format_instructions"
+                    ],
+                },
+            )
+            prompts.append({"prompt": prompt, "context": context})
+        return prompts
 
     # https://github.com/taikinman/langrila/blob/main/src/langrila/prompt_template.py#L34
     def _check_args(self, template: str, args: dict) -> None:

@@ -1,0 +1,27 @@
+retries: 3
+n_queries: 3
+output_format: JSON形式で、各キーには単一のクエリを格納する。
+template: |
+  検索エンジンに入力するクエリを最適化し、様々な角度から検索を行うことで、より適切で幅広い検索結果が得られるようにします。
+  具体的には、類義語や日本語と英語の表記揺れを考慮し、多角的な視点からクエリを生成します。
+
+  以下の<question>タグ内にはユーザーの入力した質問文が入ります。
+  この質問文に基づいて、{n_queries}個の検索用クエリを生成してください。
+  各クエリは30トークン以内とし、日本語と英語を適切に混ぜて使用することで、広範囲の文書が取得できるようにしてください。
+
+  生成されたクエリは、<format>タグ内のフォーマットに従って出力してください。
+
+  <example>
+  question: Knowledge Bases for Amazon Bedrock ではどのベクトルデータベースを使えますか？
+  query_1: Knowledge Bases for Amazon Bedrock vector databases engine DB
+  query_2: Amazon Bedrock ナレッジベース ベクトルエンジン vector databases DB
+  query_3: Amazon Bedrock RAG 検索拡張生成 埋め込みベクトル データベース エンジン
+  </example>
+
+  <format>
+  {output_format}
+  </format>
+
+  <question>
+  {question}
+  </question>
