@@ -6,6 +6,8 @@ import boto3
 from botocore.config import Config
 from botocore.exceptions import ClientError
 
+from prompt_config import PromptConfig
+
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
@@ -81,3 +83,25 @@ class LLM:
                 print(
                     f"Output tokens: {chunk['amazon-bedrock-invocationMetrics']['outputTokenCount']}"
                 )
+
+    def query_expansion(self, prompt_conf: PromptConfig) -> None:
+        prompt_conf.format_message({"prompt": prompt_conf.prompt_query_expansion})
+        body = json.dumps(prompt_conf.config)
+
+        for attempt in range(prompt_conf.retries):
+            try:
+                if "claude-3" in self.model_id:
+                    generate_text = "{" + self.generate(body)
+                else:
+                    generate_text = self.generate(body)
+                query_expanded = json.loads(generate_text)
+                query_expanded["query_0"] = prompt_conf.query
+                return query_expanded
+            except json.JSONDecodeError:
+                if attempt < prompt_conf.retries - 1:
+                    print(
+                        f"Failed to decode JSON, retrying... (Attempt {attempt + 1}/{prompt_conf.retries})"
+                    )
+                    continue
+                else:
+                    raise Exception("Failed to decode JSON after several retries.")

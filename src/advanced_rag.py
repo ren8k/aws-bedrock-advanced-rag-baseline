@@ -25,29 +25,6 @@ def get_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def query_expansion(llm: LLM, prompt_conf: PromptConfig) -> None:
-    prompt_conf.format_message({"prompt": prompt_conf.prompt_query_expansion})
-    body = json.dumps(prompt_conf.config)
-
-    for attempt in range(prompt_conf.retries):
-        try:
-            if "claude-3" in llm.model_id:
-                generate_text = "{" + llm.generate(body)
-            else:
-                generate_text = llm.generate(body)
-            query_expanded = json.loads(generate_text)
-            query_expanded["query_0"] = prompt_conf.query
-            return query_expanded
-        except json.JSONDecodeError:
-            if attempt < prompt_conf.retries - 1:
-                print(
-                    f"Failed to decode JSON, retrying... (Attempt {attempt + 1}/{prompt_conf.retries})"
-                )
-                continue
-            else:
-                raise Exception("Failed to decode JSON after several retries.")
-
-
 def main(args: argparse.Namespace) -> None:
     config_llm_path = "../config/llm/claude-3_cofig.yaml"
     config_llm_expansion_path = "../config/llm/claude-3_query_expansion_config.yaml"
@@ -61,7 +38,7 @@ def main(args: argparse.Namespace) -> None:
 
     retriever = Retriever(args.kb_id, args.region)
 
-    # Query Expansion
+    # step1. Query Expansion
     prompt_conf = PromptConfig(
         config_llm_expansion_path,
         template_query_expansion_path,
@@ -69,12 +46,10 @@ def main(args: argparse.Namespace) -> None:
         is_query_expansion=True,
     )
     llm = LLM(args.region, prompt_conf.model_id, prompt_conf.is_stream)
-
-    # TODO: 上記2つは、query_expansionメソッド内で定義する
-    query_expanded = query_expansion(llm, prompt_conf)
+    query_expanded = llm.query_expansion(prompt_conf)
     # print(query_expanded)
 
-    # Retrival contexts
+    # step2. Retrival contexts
     multi_retrieval_results = retriever.retrieve_multiple_queries(
         args.kb_id, args.region, query_expanded
     )
@@ -82,14 +57,13 @@ def main(args: argparse.Namespace) -> None:
     # print(multi_contexts)
     # print(len(multi_contexts))
 
-    # TODO: どれくらいお金かかるか不安
-    # Augument prompt
+    # step3. Augument prompt
     prompt_conf = PromptConfig(config_llm_path, template_path, query_path)
     prompt_conf.format_prompt({"contexts": multi_contexts, "query": prompt_conf.query})
     prompt_conf.format_message({"prompt": prompt_conf.prompt})
     body = json.dumps(prompt_conf.config)
 
-    # Generate message
+    # step4. Generate message
     generated_text = llm.generate(body)
     print(generated_text)
 
