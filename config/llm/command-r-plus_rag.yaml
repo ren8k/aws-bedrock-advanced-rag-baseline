@@ -1,6 +1,6 @@
 max_tokens: 1000
 temperature: 0
-message: {prompt}
+message: "{prompt}"
 chat_history:
         [{ "role": "USER", "message": "Respond only in Japanese" },
         { "role": "CHATBOT", "message": "承知しました。何について話しましょうか？"}]

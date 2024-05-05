@@ -1,10 +1,10 @@
 max_tokens: 1000
 temperature: 0
-message: {prompt}
+message: "{prompt}"
 chat_history:
         [{ "role": "USER", "message": "Respond only in Japanese. And Respond only JSON. Begin curly braces." },
         { "role": "CHATBOT", "message": "承知しました。"}]
-stop_sequences": ["</output>"]
+stop_sequences: ["</output>"]
 
 stream: false
 model_id: cohere.command-r-plus-v1:0
