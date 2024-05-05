@@ -32,7 +32,7 @@ def get_args() -> argparse.Namespace:
     parser.add_argument(
         "--config-path",
         type=str,
-        default="../config/config.yaml",
+        default="../config/config_claude-3.yaml",
         help="The path to the configuration YAML file.",
     )
     return parser.parse_args()
