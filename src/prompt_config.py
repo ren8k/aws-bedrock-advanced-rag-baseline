@@ -12,18 +12,19 @@ class PromptConfig:
         template_path: str,
         query_path: str,
         is_query_expansion: bool = False,
+        is_relevance_eval: bool = False,
     ) -> None:
-        self.config = self._load_config(config_path)
+        self.config = self._load_yaml(config_path)
         self.config_org = copy.deepcopy(self.config)
-        self.template = self._load_config(template_path)["template"]
-        self.query = self._load_config(query_path)["query"]
+        self.template = self._load_yaml(template_path)["template"]
+        self.query = self._load_yaml(query_path)["query"]
         self.model_id = self.config.pop("model_id")
         self.prompt = ""
         self.is_stream = self.config.pop("stream")
 
         # Query Expansion
         if is_query_expansion:
-            self.query_expansion_conf = self._load_config(template_path)
+            self.query_expansion_conf = self._load_yaml(template_path)
             self.prompt_query_expansion = self._format_template(
                 self.template,
                 {
@@ -34,7 +35,10 @@ class PromptConfig:
             )
             self.retries = self.query_expansion_conf["retries"]
 
-    def _load_config(self, config_path: str) -> Any:
+        if is_relevance_eval:
+            self.relevance_eval_conf = self._load_yaml(template_path)
+
+    def _load_yaml(self, config_path: str) -> Any:
         with open(config_path, "r") as file:
             return yaml.safe_load(file)
 
@@ -61,6 +65,24 @@ class PromptConfig:
     def _format_template(self, template: str, args: dict) -> None:
         self._check_args(template, args)
         return template.format(**args)
+
+    def create_prompts_for_relevance_eval(
+        self, query_expanded: dict, multi_contexts: list
+    ) -> list:
+        prompts = []
+        for context in multi_contexts:
+            prompt = self._format_template(
+                self.template,
+                {
+                    "context": context,
+                    "question": self.query,
+                    "format_instructions": self.relevance_eval_conf[
+                        "format_instructions"
+                    ],
+                },
+            )
+            prompts.append({"prompt": prompt, "context": context})
+        return prompts
 
     # https://github.com/taikinman/langrila/blob/main/src/langrila/prompt_template.py#L34
     def _check_args(self, template: str, args: dict) -> None:
