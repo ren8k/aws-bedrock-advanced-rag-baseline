@@ -1,5 +1,6 @@
 import json
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
 import boto3
@@ -84,7 +85,7 @@ class LLM:
                     f"Output tokens: {chunk['amazon-bedrock-invocationMetrics']['outputTokenCount']}"
                 )
 
-    def query_expansion(self, prompt_conf: PromptConfig) -> None:
+    def expand_queries(self, prompt_conf: PromptConfig) -> None:
         prompt_conf.format_message({"prompt": prompt_conf.prompt_query_expansion})
         body = json.dumps(prompt_conf.config)
 
@@ -105,3 +106,43 @@ class LLM:
                     continue
                 else:
                     raise Exception("Failed to decode JSON after several retries.")
+
+    @classmethod
+    def eval_relevance_parallel(
+        cls,
+        region: str,
+        model_id: str,
+        prompt_conf: PromptConfig,
+        prompts_and_contexts: list,
+    ) -> list:
+        results = []
+
+        import copy
+
+        def generate_single_message(llm: LLM, prompt_and_context: dict):
+            prompt_conf_tmp = copy.deepcopy(prompt_conf)
+            prompt_conf_tmp.format_message({"prompt": prompt_and_context["prompt"]})
+            body = json.dumps(prompt_conf_tmp.config)
+
+            is_relevant = llm.generate_message(body)
+
+            if is_relevant == "True":
+                return prompt_and_context["context"]
+            else:
+                return None
+
+        llm = cls(region, model_id)
+
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = {
+                executor.submit(
+                    generate_single_message, llm, prompt_and_context
+                ): prompt_and_context
+                for prompt_and_context in prompts_and_contexts
+            }
+            for future in as_completed(futures):
+                result = future.result()
+                if result:
+                    results.append(result)
+
+        return results
