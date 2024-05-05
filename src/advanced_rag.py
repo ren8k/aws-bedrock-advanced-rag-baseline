@@ -36,6 +36,7 @@ def query_expansion(llm: LLM, prompt_conf: PromptConfig) -> None:
             else:
                 generate_text = llm.generate(body)
             query_expanded = json.loads(generate_text)
+            query_expanded["query_0"] = prompt_conf.query
             return query_expanded
         except json.JSONDecodeError:
             if attempt < prompt_conf.retries - 1:
