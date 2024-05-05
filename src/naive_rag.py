@@ -37,8 +37,8 @@ def main(args: argparse.Namespace) -> None:
     template_path = "../config/prompt_template/prompt_template.yaml"
     query_path = "../config/query/query.yaml"
 
-    prompt_conf = PromptConfig(config_path, template_path, query_path)
     retriever = Retriever(args.kb_id, args.region)
+    prompt_conf = PromptConfig(config_path, template_path, query_path)
     llm = LLM(args.region, prompt_conf.model_id, prompt_conf.is_stream)
 
     # Retrieve contexts
