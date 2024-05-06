@@ -9,7 +9,7 @@
 - Claude3 Haiku, Command R+ を利用した Advanced RAG に対応しており，その他のモデルの利用拡張も容易に行える設計である．
 - LLM の引数設定，プロンプトなどは yaml ファイルで管理している．
 
-<img src="./assets/architecture.png" width="600">
+<img src="./assets/advanced-rag-architecture.png" width="600">
 
 ## 目次<!-- omit in toc -->
 
