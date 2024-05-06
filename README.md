@@ -124,50 +124,56 @@ step5. LLMによるテキスト生成
 以降，各ステップにおける処理と各ステップで利用する cofig ファイルについて説明する．
 
 <details>
-  <summary>step1. クエリ拡張</summary>
-  　単一のクエリを表記揺れや表現などを考慮した複数のクエリに拡張することで，多様な検索結果を取得する．これにより，生成される回答の適合性を高めることを狙いとしている．以下のconfigファイルに検索したい事項やプロンプトテンプレートを定義する．
-  
-  - `config/query/query.yaml`: 検索したい事項（この内容が拡張される）
-  - `config/prompt_template/query_expansion.yaml`: クエリ拡張のためのプロンプトテンプレート
-  - `config/llm/claude-3_query_expansion.yaml`: Claude3 の設定
-  
-  本実装では，Claude3 Haiku に対して json 形式で拡張したクエリを出力させるため，以下の工夫を行っている．
-  - プロンプトでは，JSON 形式での出力を指定
-  - Claude3 の引数 messages では，prefill のAssistant フィールドに`{`を指定[^2-2]
-  - Claude3 の引数 system でも同様に，json 形式での出力を指定
-  - json 形式で取得できなかった場合は再度 Claude3 Haikuにリクエストを送信（リトライ）するように実装
-  
-  実際にクエリ拡張際に得られるクエリ(例)を以下に示す．
-  ```json
-  {
-    "query_1": "Amazon generative AI models language GPT-3 Alexa", 
-    "query_2": "Amazon generative AI 生成モデル 自然言語処理 AI", 
-    "query_3": "Amazon generative AI 言語生成 人工知能 AI技術"
-  }
-  ```
-  <br>
-  
-  以下に，各configファイルを示す．
-  **`config/query/query.yaml`**
-  ```yaml
-  query: "What is Amazon doing in the field of generative AI?"
-  ```
-  <br>
-  
-  **`config/prompt_template/query_expansion.yaml`**
-  ```yaml
-  retries: 3
-  n_queries: 3
-  output_format: JSON形式で、各キーには単一のクエリを格納する。
-  template: |
+<summary>step1. クエリ拡張</summary>
+　単一のクエリを表記揺れや表現などを考慮した複数のクエリに拡張することで，多様な検索結果を取得する．これにより，生成される回答の適合性を高めることを狙いとしている．以下のconfigファイルに検索したい事項やプロンプトテンプレートを定義する．
+
+- `config/query/query.yaml`: 検索したい事項（この内容が拡張される）
+- `config/prompt_template/query_expansion.yaml`: クエリ拡張のためのプロンプトテンプレート
+- `config/llm/claude-3_query_expansion.yaml`: Claude3 の設定
+
+本実装では，Claude3 Haiku に対して json 形式で拡張したクエリを出力させるため，以下の工夫を行っている．
+
+- プロンプトでは，JSON 形式での出力を指定
+- Claude3 の引数 messages では，prefill の Assistant フィールドに`{`を指定[^2-2]
+- Claude3 の引数 system でも同様に，json 形式での出力を指定
+- json 形式で取得できなかった場合は再度 Claude3 Haiku にリクエストを送信（リトライ）するように実装
+
+実際にクエリ拡張際に得られるクエリ(例)を以下に示す．
+
+```json
+{
+  "query_1": "Amazon generative AI models language GPT-3 Alexa",
+  "query_2": "Amazon generative AI 生成モデル 自然言語処理 AI",
+  "query_3": "Amazon generative AI 言語生成 人工知能 AI技術"
+}
+```
+
+<br>
+
+以下に，各 config ファイルを示す．
+**`config/query/query.yaml`**
+
+```yaml
+query: "What is Amazon doing in the field of generative AI?"
+```
+
+<br>
+
+**`config/prompt_template/query_expansion.yaml`**
+
+```yaml
+retries: 3
+n_queries: 3
+output_format: JSON形式で、各キーには単一のクエリを格納する。
+template: |
   検索エンジンに入力するクエリを最適化し、様々な角度から検索を行うことで、より適切で幅広い検索結果が得られるようにします。
   具体的には、類義語や日本語と英語の表記揺れを考慮し、多角的な視点からクエリを生成します。
 
-以下の<question>タグ内にはユーザーの入力した質問文が入ります。
-この質問文に基づいて、{n_queries}個の検索用クエリを生成してください。
-各クエリは 30 トークン以内とし、日本語と英語を適切に混ぜて使用することで、広範囲の文書が取得できるようにしてください。
+  以下の<question>タグ内にはユーザーの入力した質問文が入ります。
+  この質問文に基づいて、{n_queries}個の検索用クエリを生成してください。
+  各クエリは 30 トークン以内とし、日本語と英語を適切に混ぜて使用することで、広範囲の文書が取得できるようにしてください。
 
-生成されたクエリは、<format>タグ内のフォーマットに従って出力してください。
+  生成されたクエリは、<format>タグ内のフォーマットに従って出力してください。
 
   <example>
   question: Knowledge Bases for Amazon Bedrock ではどのベクトルデータベースを使えますか？
@@ -183,30 +189,34 @@ step5. LLMによるテキスト生成
   <question>
   {question}
   </question>
-  ```
-  <br>
-  
-  **`config/prompt_template/query_expansion.yaml`**
-  ```yaml
-  anthropic_version: bedrock-2023-05-31
-  max_tokens: 1000
-  temperature: 0
-  system: Respond valid json format.
-  # https://docs.anthropic.com/claude/docs/control-output-format#prefilling-claudes-response
-  messages:
-      [{ "role": "user", "content": [{ "type": "text", "text": "{prompt}" }] },
-      {"role": "assistant", "content": [{ "type": "text", "text": "{" }]}]
-  stop_sequences: ["</output>"]
-  stream: false
-  model_id: anthropic.claude-3-haiku-20240307-v1:0
-  ```
+```
+
+<br>
+
+**`config/prompt_template/query_expansion.yaml`**
+
+```yaml
+anthropic_version: bedrock-2023-05-31
+max_tokens: 1000
+temperature: 0
+system: Respond valid json format.
+# https://docs.anthropic.com/claude/docs/control-output-format#prefilling-claudes-response
+messages:
+  [
+    { "role": "user", "content": [{ "type": "text", "text": "{prompt}" }] },
+    { "role": "assistant", "content": [{ "type": "text", "text": "{" }] },
+  ]
+stop_sequences: ["</output>"]
+stream: false
+model_id: anthropic.claude-3-haiku-20240307-v1:0
+```
 
 </details>
 
 <details>
-  <summary>step2. ベクトル検索</summary>
-  　step1.で拡張した複数のクエリを利用して，Knowledge Base でベクトル検索を行う．本実装では，元のクエリと拡張した 3 つのクエリの計 4 つのクエリで独立に検索を行い，検索毎に 5 件の抜粋を取得しているので，計 20 件分の抜粋を Retrieve している．
-  また，AWS 公式ブログ[^0-0]でも言及されている通り，各クエリの検索は`concurrent.futures.ThreadPoolExecutor `を利用して並列実行している．
+<summary>step2. ベクトル検索</summary>
+　step1.で拡張した複数のクエリを利用して，Knowledge Base でベクトル検索を行う．本実装では，元のクエリと拡張した 3 つのクエリの計 4 つのクエリで独立に検索を行い，検索毎に 5 件の抜粋を取得しているので，計 20 件分の抜粋を Retrieve している．
+また，AWS 公式ブログ[^0-0]でも言及されている通り，各クエリの検索は`concurrent.futures.ThreadPoolExecutor `を利用して並列実行している．
 
 ```python
 @classmethod
@@ -241,8 +251,88 @@ def retrieve_parallel(
 
 <details>
 <summary>step3. 関連度評価</summary>
-　step2での検索結果が，元のユーザーからの質問（クエリ）に関連したものになっているかを評価する．本実装では，LLM（Claude3 Haiku）に対し，
-大規模言語モデル (LLM) とチャット形式で対話することができます。LLM と直接対話するプラットフォームが存在するおかげで、細かいユースケースや新しいユースケースに迅速に対応することができます。また、プロンプトエンジニアリングの検証用環境としても有効です。
+　step2での検索結果が，元のユーザーからの質問（クエリ）に関連したものになっているかを評価する．これにより，検索で得られた抜粋内に誤った回答を誘発しうる情報がある場合，それを排除することにより，回答の精度向上を狙いとしている．
+
+本実装では，Claude3 Haiku を利用し，全ての検索結果の抜粋に対して質問者のクエリとの関連度を評価している．また，step2 と同様，非同期処理による並列実行により，効率的に処理を行っている．（以下に該当部分を示す．ここでは，10 並列で処理を行っている．）
+
+```python
+@classmethod
+def eval_relevance_parallel(
+    cls,
+    region: str,
+    model_id: str,
+    prompt_conf: PromptConfig,
+    prompts_and_contexts: list,
+    max_workers: int = 10,
+) -> list:
+    results = []
+
+    def generate_single_message(llm: LLM, prompt_and_context: dict):
+        prompt_conf_tmp = copy.deepcopy(prompt_conf)
+        prompt_conf_tmp.format_message({"prompt": prompt_and_context["prompt"]})
+        body = json.dumps(prompt_conf_tmp.config)
+        is_relevant = llm.generate_message(body)
+
+        if is_relevant == "True":
+            return prompt_and_context["context"]
+        else:
+            return None
+
+    llm = cls(region, model_id)
+
+    with ThreadPoolExecutor(max_workers) as executor:
+        futures = {
+            executor.submit(
+                generate_single_message, llm, prompt_and_context
+            ): prompt_and_context
+            for prompt_and_context in prompts_and_contexts
+        }
+        for future in as_completed(futures):
+            result = future.result()
+            if result:
+                results.append(result)
+
+    return results
+```
+
+以下に利用している cofig ファイルを示す．
+
+**`config/prompt_template/relevance_eval.yaml`**
+
+```yaml
+format_instructions: True or False
+template: |
+  あなたは、ユーザーからの質問と検索で得られたドキュメントの関連度を評価する専門家です。
+  <excerpt>タグ内は、検索により取得したドキュメントの抜粋です。
+
+  <excerpt>{context}</excerpt>
+
+  <question>タグ内は、ユーザーからの質問です。
+
+  <question>{question}</question>
+
+  このドキュメントの抜粋は、ユーザーの質問に回答するための正確な情報を含んでいるかを慎重に判断してください。
+  正確な情報を含んでいる場合は 'yes'、含んでいない場合は 'no' のバイナリスコアを返してください。
+
+  {format_instructions}
+```
+
+<br>
+
+**`config/llm/claude-3_relevance_eval.yaml`**
+
+```yaml
+anthropic_version: bedrock-2023-05-31
+max_tokens: 1000
+temperature: 0
+system: Respond only true or false.
+messages:
+  [{ "role": "user", "content": [{ "type": "text", "text": "{prompt}" }] }]
+stop_sequences: ["</output>"]
+
+stream: false
+model_id: anthropic.claude-3-haiku-20240307-v1:0
+```
 
 </details>
 
