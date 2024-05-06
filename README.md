@@ -23,7 +23,7 @@
   - [Advanced RAG による質問応答の実行](#advanced-rag-による質問応答の実行)
     - [実行例](#実行例)
     - [advanced\_rag.py のアルゴリズム](#advanced_ragpy-のアルゴリズム)
-  - [Naive RAG による質疑応答の実行](#naive-rag-による質疑応答の実行)
+  - [Naive RAG による質問応答の実行](#naive-rag-による質問応答の実行)
 - [Next Step](#next-step)
 - [References](#references)
 
@@ -397,7 +397,7 @@ model_id: anthropic.claude-3-haiku-20240307-v1:0
 
 </details>
 
-### Naive RAG による質疑応答の実行
+### Naive RAG による質問応答の実行
 
 [`./src`](https://github.com/ren8k/aws-bedrock-advanced-rag-baseline/tree/main/src)ディレクトリに移動し，以下を実行する．
 
