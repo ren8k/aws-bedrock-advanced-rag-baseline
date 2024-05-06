@@ -112,7 +112,6 @@ class LLM:
     def eval_relevance_parallel(
         cls,
         region: str,
-        model_id: str,
         prompt_conf: PromptConfig,
         prompts_and_contexts: list,
         max_workers: int = 10,
@@ -130,7 +129,7 @@ class LLM:
             else:
                 return None
 
-        llm = cls(region, model_id)
+        llm = cls(region, prompt_conf.model_id)
 
         with ThreadPoolExecutor(max_workers) as executor:
             futures = {
