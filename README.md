@@ -1,12 +1,12 @@
-# Knowledge Bases for Amazon Bedrock を利用した RAG のベースライン<!-- omit in toc -->
+# Knowledge Bases for Amazon Bedrock を利用した Advanced RAG のベースライン<!-- omit in toc -->
 
-本リポジトリでは，Knowledge Base(OpenSearch Serverless) および Bedrock を利用した RAG の Python 実装（ベースライン）を公開している．LLM，Retriever, PromptConfig というクラスを定義し，可能な限りシンプルに実装している．
+本リポジトリでは，2024/05/01 に公開された AWS 公式ブログの記事「[Amazon Kendra と Amazon Bedrock で構成した RAG システムに対する Advanced RAG 手法の精度寄与検証](https://aws.amazon.com/jp/blogs/news/verifying-the-accuracy-contribution-of-advanced-rag-methods-on-rag-systems-built-with-amazon-kendra-and-amazon-bedrock/)」[^0-0]で紹介されている Advanced RAG の再現実装（Python）を公開している．なお，本実装は先日公開した[本リポジトリ](https://github.com/ren8k/aws-bedrock-rag-baseline)[^0-1]をベースとしており，Naive RAG, Advanced RAG の両方を試行できるコードを用意している．
 
 ## TL;DR<!-- omit in toc -->
 
-- boto3 ベースでの シンプルな RAG の実装を行った（以下概要図）．
-- Command R+ と Claude3 Opus などのモデルを利用可能．
-  - streaming にも対応．
+- boto3 ベースで Advanced RAG の実装を行った（以下概要図）．
+- 記事[^0-0]で言及されている，非同期処理による LLM, Retrieve の並列実行にも取り組んでいる．
+- Claude3 Haiku, Command R+ を利用した Advanced RAG に対応しており，その他のモデルの利用拡張も容易に行える設計である．
 - LLM の引数設定，プロンプトなどは yaml ファイルで管理している．
 
 <img src="./assets/architecture.png" width="600">
@@ -20,14 +20,14 @@
 - [手順](#手順)
 - [手順の各ステップの詳細](#手順の各ステップの詳細)
   - [Knowledge Base for Amazon Bedrock の構築（スキップ可能）](#knowledge-base-for-amazon-bedrock-の構築スキップ可能)
-  - [RAG による質問応答の実行](#rag-による質問応答の実行)
+  - [Advanced RAG による質問応答の実行](#advanced-rag-による質問応答の実行)
   - [CleanUp（スキップ可能）](#cleanupスキップ可能)
 - [Next Step](#next-step)
 - [References](#references)
 
 ## 背景
 
-昨今， Bedrock を利用した実装・記事が多様に公開されているが，その多くでは LangChain が利用されている．LangChain を利用することでシンプルかつ少ない記述で RAG を実装できるが，初学者にとっては中身のロジックが分かりづらい．加えて，本番環境において，バージョンアップデートによる影響が大きい LangChain を利用することはリスクが高い．そこで，本リポジトリでは LangChain を利用せず，boto3 のみを利用して シンプルな RAG を実装した．
+Advanced RAG の方法論などをまとめた記事は多く存在するが，本日時点（2024/05/06）においてその実装例は非常に少ない．特に，boto3 を利用した Advanced RAG の実装例は本リポジトリでは LangChain を利用せず，boto3 のみを利用して シンプルな RAG を実装した．
 
 ## 目的
 
@@ -36,8 +36,7 @@ boto3 のみを利用してシンプルな RAG を実装する．また，Python
 ## オリジナリティ
 
 - LangChain を利用せず，boto のみを利用して実装している．
-- Knowledge Base を Retrieve API 経由で利用することで，Claude3 Opus や Command R+で質問応答を行っている．
-  - 執筆時点（2024/05/01）では，Knowledge Base は上記のモデルをサポートしていない[^1]．
+- Knowledge Base を Retrieve API 経由で利用することで，Claude3 Haiku や Command R+で質問応答を行っている．
 - 利用する LLM を容易に切り替えられるようシンプルな設計にしている．
   - LLM，Retriever, PromptConfig というクラスを定義しており，機能追加に対して柔軟に対応できるようにしている．
 - LLM の設定，プロンプトなどは yaml ファイルで管理している．
@@ -45,35 +44,40 @@ boto3 のみを利用してシンプルな RAG を実装する．また，Python
 
 ## 前提
 
-- オレゴンリージョン（`us-west-2`）での実行を前提としている．
+- バージニア北部リージョン（`us-east-1`）での実行を前提としている．
+- Knowledge Base の DB としては，Pinecone を利用している．
+  - Pinecone 無料枠を利用することで，ランニングコストゼロでベクトルデータベースを構築可能．
 - `requirements.txt` に記載のライブラリがインストールされている．
   - `pip install -r requirements.txt` でインストール可能．
 - `適切な認証情報の設定・ロールの設定がなされている．
   - 設定が面倒な場合，Cloud9 上で実行しても良い．
+- Bedrock のモデルアクセスの有効化が適切になされている．
+  - 本リポジトリ上のコードでは，Claude3 Haiku, Command R+ を利用している．
 
 ## 手順
 
-- Knowledge Base for Amazon Bedrock の構築（スキップ可能）
-- RAG による質問応答の実行
-- CleanUp（スキップ可能）
+可能な限り検証コストを抑えるため，Pinecone の無料枠を利用して Knowledge Base を構築し，Advanced RAG の実行を行った．手順は以下の通りである．
+
+- Pinecone を利用した Knowledge Base for Amazon Bedrock の構築（スキップ可能）
+- Advanced RAG による質問応答の実行
+- Naive RAG による質疑応答の実行
 
 ## 手順の各ステップの詳細
 
 ### Knowledge Base for Amazon Bedrock の構築（スキップ可能）
 
-[`./notebook/0_create_ingest_documents_test_kb.ipynb`](https://github.com/ren8k/aws-bedrock-rag-baseline/blob/main/notebook/0_create_ingest_documents_test_kb.ipynb)を全て実行し，Knowledge Base for Amazon Bedrock を構築する．本ノートブックでは，以下を実行する．（既存の Knowledge Base を利用する場合はスキップ可能．）
+本記事[^2-0][^2-1]を参考に，Pinecone アカウントの作成，ベクター DB のインデックスの作成を行う．以下に注意点，および Knowledge Base 作成時の設定を示す．
 
-- Amazon S3 からデータにアクセスし、OpenSearch Serverless に embeddings を保存するためのポリシーおよび実行ロールを作成
-- OpenSearch Serverless の空のインデックスを作成
-- ドキュメントをローカルにダウンロードし、Amazon S3 にアップロード
-  - ドキュメントは，2019~2022 年度の Amazon の株主向け年次報告書である
-- Knowledge Base を作成
-- start_ingestion_job API を利用し，Knowledge Base にデータをインポート
-  - S3 からデータを取り込み，チャンク分割し，Amazon Titan Embeddings モデルにより embedding に変換し，これらの embedding を AOSS に保存する
+- 無料枠の場合，バージニア北部(us-east-1)リージョンのみ利用可能である．
+- 埋め込みモデルとして`Cohere-embed-multilingual-v3.0`を利用する．
+- バージニア北部リージョンにて Secrets Manager を作成し，Pinecone の API キーを保存する．
+- 簡単のため，データソースの S3 には以下の 2020 ~ 2023 年度の Amazon の株主向け年次報告書を格納し，これを Embeddings vector に変換している．
+  - https://s2.q4cdn.com/299287126/files/doc_financials/2023/ar/2022-Shareholder-Letter.pdf
+  - https://s2.q4cdn.com/299287126/files/doc_financials/2022/ar/2021-Shareholder-Letter.pdf
+  - https://s2.q4cdn.com/299287126/files/doc_financials/2021/ar/Amazon-2020-Shareholder-Letter-and-1997-Shareholder-Letter.pdf
+  - https://s2.q4cdn.com/299287126/files/doc_financials/2020/ar/2019-Shareholder-Letter.pdf
 
-なお，上記のノートブックに関しては AWS の公式リポジトリ[^2]のノートブックをほぼ流用させていただいております．作成者の方には感謝申し上げます．
-
-### RAG による質問応答の実行
+### Advanced RAG による質問応答の実行
 
 検索したい内容やプロンプトの雛形を yaml ファイルに定義しておき，python スクリプト（[`main.py`](https://github.com/ren8k/aws-bedrock-rag-baseline/blob/main/src/main.py)）を実行することで，RAG による質問応答を行う．
 
@@ -188,29 +192,9 @@ boto3 のみを利用してシンプルな RAG を実装する．また，Python
 
 ## Next Step
 
-- Advanced RAG への拡張
-  - 公式ブログ[^6]を参考にすると良いかも
-- DB 格納前の工夫
-  - [セクション毎にチャンク分割するための工夫](https://qiita.com/Naoki_Ishihara/items/9f1b852917de19141847)が必要か？
-    - RAG の評価も参考になるかも
-  - 日本語ドキュメントの場合 NFKC 正規化しておくほうが良いか？
-  - 非同期処理は[本記事](https://qiita.com/ShotaOki/items/3198eb695e1c6aa8cdaa)が参考になるかも
-- Command R+ 特有の検索クエリの生成および Retrieve した結果を引数`documents`に辞書形式で渡した場合の精度検証
-  - AWS 公式ドキュメント[^4]によると，辞書内の文字列の合計単語数は 300 words 未満に抑えることを推奨しており，単に Retrieve した結果をそのまま引数`documents`に格納すると性能低下する可能性あり？
-- 引用部分の提示
-  - qiita の記事[^5]などを参考にすると良いかも
-- LangChain でも実装してみたい
-  - OpenAI API との切り替えなども楽そう
-- Knowlwdge base の IaC 化
-  - CDK or CloudFormation
-- アプリケーション化
-- MLflow などと組み合わせた実験管理
-
 ## References
 
-[^1]: [Amazon Bedrock のナレッジベースでサポートされているリージョンとモデル](https://docs.aws.amazon.com/ja_jp/bedrock/latest/userguide/knowledge-base-supported.html)
-[^2]: [aws-samples/amazon-bedrock-workshop](https://github.com/aws-samples/amazon-bedrock-workshop)
-[^3]: [Anthropic Claude Messages API](https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-anthropic-claude-messages.html)
-[^4]: [Cohere Command R および Command R+ モデル](https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-cohere-command-r-plus.html)
-[^5]: [Amazon Bedrock に Cohere Command R と Command R+ が来たよ！RAG がすげーよ！](https://qiita.com/moritalous/items/16797ea9d82295f40b5e)
-[^6]: [Amazon Kendra と Amazon Bedrock で構成した RAG システムに対する Advanced RAG 手法の精度寄与検証](https://aws.amazon.com/jp/blogs/news/verifying-the-accuracy-contribution-of-advanced-rag-methods-on-rag-systems-built-with-amazon-kendra-and-amazon-bedrock/)
+[^0-0]: [Amazon Kendra と Amazon Bedrock で構成した RAG システムに対する Advanced RAG 手法の精度寄与検証](https://aws.amazon.com/jp/blogs/news/verifying-the-accuracy-contribution-of-advanced-rag-methods-on-rag-systems-built-with-amazon-kendra-and-amazon-bedrock/)
+[^0-1]: [ren8k/aws-bedrock-rag-baseline](https://github.com/ren8k/aws-bedrock-rag-baseline)
+[^2-0]: [Amazon Bedrock の Knowledge Base を Pinecone 無料枠で構築してみた](https://benjamin.co.jp/blog/technologies/bedrock-knowledgeaase-pinecone/)
+[^2-1]: [AWS Marketplace の Pinecone を Amazon Bedrock のナレッジベースとして利用する](https://aws.amazon.com/jp/blogs/news/leveraging-pinecone-on-aws-marketplace-as-a-knowledge-base-for-amazon-bedrock/)

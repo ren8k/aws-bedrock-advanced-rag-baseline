@@ -1,0 +1,10 @@
+max_tokens: 1000
+temperature: 0
+message: "{prompt}"
+chat_history:
+        [{ "role": "USER", "message": "Respond only true or false" },
+        { "role": "CHATBOT", "message": "Sure."}]
+stop_sequences: ["</output>"]
+
+stream: false
+model_id: cohere.command-r-plus-v1:0
