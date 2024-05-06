@@ -1,11 +1,11 @@
 # Knowledge Bases for Amazon Bedrock を利用した Advanced RAG のベースライン<!-- omit in toc -->
 
-本リポジトリでは，2024/05/01 に公開された AWS 公式ブログの記事「[Amazon Kendra と Amazon Bedrock で構成した RAG システムに対する Advanced RAG 手法の精度寄与検証](https://aws.amazon.com/jp/blogs/news/verifying-the-accuracy-contribution-of-advanced-rag-methods-on-rag-systems-built-with-amazon-kendra-and-amazon-bedrock/)」[^0-0]で紹介されている Advanced RAG の再現実装（Python）を公開している．なお，本実装は先日公開した[本リポジトリ](https://github.com/ren8k/aws-bedrock-rag-baseline)[^0-1]をベースとしており，Naive RAG, Advanced RAG の両方を試行できるコードを用意している．
+本リポジトリでは，2024/05/01 に公開された AWS 公式ブログ「[Amazon Kendra と Amazon Bedrock で構成した RAG システムに対する Advanced RAG 手法の精度寄与検証](https://aws.amazon.com/jp/blogs/news/verifying-the-accuracy-contribution-of-advanced-rag-methods-on-rag-systems-built-with-amazon-kendra-and-amazon-bedrock/)」[^0-0]で紹介されている Advanced RAG の再現実装（Python）を公開している．なお，本実装は先日公開した[本リポジトリ](https://github.com/ren8k/aws-bedrock-rag-baseline)[^0-1]をベースとしており，Naive RAG, Advanced RAG の両方を試行できるコードを用意している．
 
 ## TL;DR<!-- omit in toc -->
 
 - boto3 ベースで Advanced RAG の実装を行った（以下概要図）．
-- 記事[^0-0]で言及されている，非同期処理による LLM, Retrieve の並列実行にも取り組んでいる．
+- AWS 公式ブログ[^0-0]で言及されている，非同期処理による LLM, Retrieve の並列実行にも取り組んでいる．
 - Claude3 Haiku, Command R+ を利用した Advanced RAG に対応しており，その他のモデルの利用拡張も容易に行える設計である．
 - LLM の引数設定，プロンプトなどは yaml ファイルで管理している．
 
@@ -23,9 +23,6 @@
   - [Advanced RAG による質問応答の実行](#advanced-rag-による質問応答の実行)
     - [実行例](#実行例)
     - [advanced\_rag.py のアルゴリズム](#advanced_ragpy-のアルゴリズム)
-      - [`config/query/query.yaml`](#configqueryqueryyaml)
-      - [`config/prompt_template/query_expansion.yaml`](#configprompt_templatequery_expansionyaml)
-  - [CleanUp（スキップ可能）](#cleanupスキップ可能)
 - [Next Step](#next-step)
 - [References](#references)
 
@@ -118,168 +115,150 @@ step5. LLMによるテキスト生成
 
 | step  | 処理内容       | config ファイル                                                                                                                 |
 | ----- | -------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| step1 | クエリ拡張     | - `config/query/query.yaml`<br>- `config/llm/claude-3_query_expansion.yaml` <br>- `config/prompt_template/query_expansion.yaml` |
-| step2 | ベクトル検索   | -                                                                                                                               |
-| step3 | 関連度評価     | - `config/llm/claude-3_relevance_eval.yaml` <br>- `config/prompt_template/relevance_eval.yaml`                                  |
-| step4 | プロンプト拡張 | -                                                                                                                               |
-| step5 | テキスト生成   | - `config/llm/claude-3_rag.yaml` <br>- `config/config/prompt_template/rag.yaml`                                                 |
+| step1 | クエリ拡張     | - `config/query/query.yaml`<br>- `config/prompt_template/query_expansion.yaml` <br>- `config/llm/claude-3_query_expansion.yaml` |
+| step2 | ベクトル検索   | ---                                                                                                                             |
+| step3 | 関連度評価     | -`config/prompt_template/relevance_eval.yaml` <br>- `config/llm/claude-3_relevance_eval.yaml`                                   |
+| step4 | プロンプト拡張 | ---                                                                                                                             |
+| step5 | テキスト生成   | - `config/config/prompt_template/rag.yaml` <br>- `config/llm/claude-3_rag.yaml`                                                 |
 
 以降，各ステップにおける処理と各ステップで利用する cofig ファイルについて説明する．
 
 <details>
   <summary>step1. クエリ拡張</summary>
-  単一のクエリを表記揺れや表現などを考慮した複数のクエリに拡張することで，多様な検索結果を取得する．これにより，生成される回答の適合性を高めることを狙いとしている．以下のconfigファイルに検索したい事項やプロンプトテンプレートを定義する．
+  　単一のクエリを表記揺れや表現などを考慮した複数のクエリに拡張することで，多様な検索結果を取得する．これにより，生成される回答の適合性を高めることを狙いとしている．以下のconfigファイルに検索したい事項やプロンプトテンプレートを定義する．
   
   - `config/query/query.yaml`: 検索したい事項（この内容が拡張される）
   - `config/prompt_template/query_expansion.yaml`: クエリ拡張のためのプロンプトテンプレート
-  - `config/llm/claude-3_query_expansion.yaml`: Claude3の設定
+  - `config/llm/claude-3_query_expansion.yaml`: Claude3 の設定
   
-  ##### `config/query/query.yaml`
-  ```yaml
-  "query": "What is Amazon doing in the field of generative AI?"
+  本実装では，Claude3 Haiku に対して json 形式で拡張したクエリを出力させるため，以下の工夫を行っている．
+  - プロンプトでは，JSON 形式での出力を指定
+  - Claude3 の引数 messages では，prefill のAssistant フィールドに`{`を指定[^2-2]
+  - Claude3 の引数 system でも同様に，json 形式での出力を指定
+  - json 形式で取得できなかった場合は再度 Claude3 Haikuにリクエストを送信（リトライ）するように実装
+  
+  実際にクエリ拡張際に得られるクエリ(例)を以下に示す．
+  ```json
+  {
+    "query_1": "Amazon generative AI models language GPT-3 Alexa", 
+    "query_2": "Amazon generative AI 生成モデル 自然言語処理 AI", 
+    "query_3": "Amazon generative AI 言語生成 人工知能 AI技術"
+  }
   ```
+  <br>
   
-  ##### `config/prompt_template/query_expansion.yaml`
+  以下に，各configファイルを示す．
+  **`config/query/query.yaml`**
+  ```yaml
+  query: "What is Amazon doing in the field of generative AI?"
+  ```
+  <br>
+  
+  **`config/prompt_template/query_expansion.yaml`**
   ```yaml
   retries: 3
   n_queries: 3
   output_format: JSON形式で、各キーには単一のクエリを格納する。
   template: |
-    検索エンジンに入力するクエリを最適化し、様々な角度から検索を行うことで、より適切で幅広い検索結果が得られるようにします。
-    具体的には、類義語や日本語と英語の表記揺れを考慮し、多角的な視点からクエリを生成します。
+  検索エンジンに入力するクエリを最適化し、様々な角度から検索を行うことで、より適切で幅広い検索結果が得られるようにします。
+  具体的には、類義語や日本語と英語の表記揺れを考慮し、多角的な視点からクエリを生成します。
 
-    以下の<question>タグ内にはユーザーの入力した質問文が入ります。
-    この質問文に基づいて、{n_queries}個の検索用クエリを生成してください。
-    各クエリは30トークン以内とし、日本語と英語を適切に混ぜて使用することで、広範囲の文書が取得できるようにしてください。
+以下の<question>タグ内にはユーザーの入力した質問文が入ります。
+この質問文に基づいて、{n_queries}個の検索用クエリを生成してください。
+各クエリは 30 トークン以内とし、日本語と英語を適切に混ぜて使用することで、広範囲の文書が取得できるようにしてください。
 
-    生成されたクエリは、<format>タグ内のフォーマットに従って出力してください。
+生成されたクエリは、<format>タグ内のフォーマットに従って出力してください。
 
-    <example>
-    question: Knowledge Bases for Amazon Bedrock ではどのベクトルデータベースを使えますか？
-    query_1: Knowledge Bases for Amazon Bedrock vector databases engine DB
-    query_2: Amazon Bedrock ナレッジベース ベクトルエンジン vector databases DB
-    query_3: Amazon Bedrock RAG 検索拡張生成 埋め込みベクトル データベース エンジン
-    </example>
+  <example>
+  question: Knowledge Bases for Amazon Bedrock ではどのベクトルデータベースを使えますか？
+  query_1: Knowledge Bases for Amazon Bedrock vector databases engine DB
+  query_2: Amazon Bedrock ナレッジベース ベクトルエンジン vector databases DB
+  query_3: Amazon Bedrock RAG 検索拡張生成 埋め込みベクトル データベース エンジン
+  </example>
 
-    <format>
-    {output_format}
-    </format>
+  <format>
+  {output_format}
+  </format>
 
-    <question>
-    {question}
-    </question>
+  <question>
+  {question}
+  </question>
+  ```
+  <br>
+  
+  **`config/prompt_template/query_expansion.yaml`**
+  ```yaml
+  anthropic_version: bedrock-2023-05-31
+  max_tokens: 1000
+  temperature: 0
+  system: Respond valid json format.
+  # https://docs.anthropic.com/claude/docs/control-output-format#prefilling-claudes-response
+  messages:
+      [{ "role": "user", "content": [{ "type": "text", "text": "{prompt}" }] },
+      {"role": "assistant", "content": [{ "type": "text", "text": "{" }]}]
+  stop_sequences: ["</output>"]
+  stream: false
+  model_id: anthropic.claude-3-haiku-20240307-v1:0
+  ```
 
-````
 </details>
 
-- 検索したい事項を[`./config/query/query.yaml`](https://github.com/ren8k/aws-bedrock-rag-baseline/blob/main/config/query/query.yaml)に記載する．
 <details>
-<summary>query.yamlの中身（例）</summary>
-<br/>
+  <summary>step2. ベクトル検索</summary>
+  　step1.で拡張した複数のクエリを利用して，Knowledge Base でベクトル検索を行う．本実装では，元のクエリと拡張した 3 つのクエリの計 4 つのクエリで独立に検索を行い，検索毎に 5 件の抜粋を取得しているので，計 20 件分の抜粋を Retrieve している．
+  また，AWS 公式ブログ[^0-0]でも言及されている通り，各クエリの検索は`concurrent.futures.ThreadPoolExecutor `を利用して並列実行している．
 
-```yaml
-"query": "What is Amazon doing in the field of generative AI?"
-````
+```python
+@classmethod
+def retrieve_parallel(
+    cls,
+    kb_id: str,
+    region: str,
+    queries: dict,
+    max_workers: int = 10,
+    no_of_results: int = 5,
+) -> dict:
+    retriever = cls(kb_id, region)
+    results = {}
 
-  </details>
-  <br/>
+    with concurrent.futures.ThreadPoolExecutor(max_workers) as executor:
+        futures = {
+            executor.submit(retriever.retrieve, query, no_of_results): key
+            for key, query in queries.items()
+        }
+        for future in concurrent.futures.as_completed(futures):
+            key = futures[future]
+            try:
+                result = future.result()
+            except Exception as e:
+                results[key] = str(e)
+            else:
+                results[key] = result
+    return results
+```
 
-- プロンプトテンプレートを[`./config/prompt_template/prompt_template.yaml`](https://github.com/ren8k/aws-bedrock-rag-baseline/blob/main/config/prompt_template/prompt_template.yaml)に記載する．
+</details>
 
-  - 検索したい事項が`{query}`に，Knowledge Base から Retrieve した内容が`{contexts}`に入るように実装している．
-  <details>
-  <summary>prompt_template.yamlの中身（例）</summary>
-  <br/>
+<details>
+<summary>step3. 関連度評価</summary>
+　step2での検索結果が，元のユーザーからの質問（クエリ）に関連したものになっているかを評価する．本実装では，LLM（Claude3 Haiku）に対し，
+大規模言語モデル (LLM) とチャット形式で対話することができます。LLM と直接対話するプラットフォームが存在するおかげで、細かいユースケースや新しいユースケースに迅速に対応することができます。また、プロンプトエンジニアリングの検証用環境としても有効です。
 
-  ```yaml
-  "template": |
-    Human: You are a financial advisor AI system, and provides answers to questions by using fact based and statistical information when possible.
-    Use the following pieces of information to provide a concise answer to the question enclosed in <question> tags.
-    If you don't know the answer, just say that you don't know, don't try to make up an answer.
-    <context>
-    {contexts}
-    </context>
+</details>
 
-    <question>
-    {query}
-    </question>
+<details>
+<summary>step4. プロンプト拡張</summary>
 
-    The response should be specific and use statistics or numbers when possible.
+大規模言語モデル (LLM) とチャット形式で対話することができます。LLM と直接対話するプラットフォームが存在するおかげで、細かいユースケースや新しいユースケースに迅速に対応することができます。また、プロンプトエンジニアリングの検証用環境としても有効です。
 
-    Assistant:
-  ```
+</details>
 
-  </details>
-  <br/>
+<details>
+<summary>step5. テキスト生成</summary>
 
-- LLM の設定（`bedrock_runtime.invoke_model`の引数等）を[`./config/llm`](https://github.com/ren8k/aws-bedrock-rag-baseline/blob/main/config/llm)ディレクトリ内の yaml ファイルに記載する．以下に，Claude3 Opus を利用する場合の例を解説する．
+大規模言語モデル (LLM) とチャット形式で対話することができます。LLM と直接対話するプラットフォームが存在するおかげで、細かいユースケースや新しいユースケースに迅速に対応することができます。また、プロンプトエンジニアリングの検証用環境としても有効です。
 
-  - 設定ファイルとしては[`./config/llm/claude-3_cofig.yaml`](https://github.com/ren8k/aws-bedrock-rag-baseline/blob/main/config/llm/claude-3_cofig.yaml)を利用する．
-  - 引数の他，`stream` 機能を利用するかどうか，`model_id` を記載する．
-  - `messages`には{prompt}を含むように記載する
-    - 利用する LLM により引数の要素が異なるため，適宜公式ドキュメント[^3]を参照すること．
-    - 例えば，Command R+の場合は，Claude3 とは異なり，プロンプトを`message`に記載する．（`messages`ではない）
-    <details>
-    <summary>claude-3_cofig.yamlの中身（例）</summary>
-    <br/>
-
-  ```yaml
-  "anthropic_version": "bedrock-2023-05-31"
-  "max_tokens": 1000
-  "temperature": 0
-  "system": "Respond only in Japanese"
-  "messages":
-    [{ "role": "user", "content": [{ "type": "text", "text": "{prompt}" }] }]
-  "stop_sequences": ["</output>"]
-
-  "stream": false
-  "model_id": "anthropic.claude-3-opus-20240229-v1:0"
-  ```
-
-  </details>
-  <br/>
-  <details>
-  <summary>command-r-plus_config.yamlの中身（例）</summary>
-  <br/>
-
-  ```yaml
-  "max_tokens": 1000
-  "temperature": 0
-  "message": "{prompt}"
-  "chat_history":
-    [
-      { "role": "USER", "message": "Respond only in Japanese" },
-      {
-        "role": "CHATBOT",
-        "message": "Sure. What would you like to talk about?",
-      },
-    ]
-  "stop_sequences": ["</output>"]
-
-  "stream": true
-  "model_id": "cohere.command-r-plus-v1:0"
-  ```
-
-  </details>
-  <br/>
-
-- 利用する Knowledge Base の ID を確認する
-  <details>
-  <summary>Knowledge Base の IDの確認（例）</summary>
-  <br/>
-
-  <img src="./assets/kb_id.png" width="800">
-
-  </details>
-  <br/>
-
-- [`./src`](https://github.com/ren8k/aws-bedrock-rag-baseline/blob/main/src)ディレクトリに移動し，`python main.py --kb-id <Knowledge Base の ID>`を実行する
-  - LLM，Retriever, PromptConfig というクラスを定義している
-  - 利用する LLM の設定ファイルは，[`main.py`](https://github.com/ren8k/aws-bedrock-rag-baseline/blob/main/src/main.py)の 35, 36 行目で指定している
-
-### CleanUp（スキップ可能）
-
-[`./notebook/0_create_ingest_documents_test_kb.ipynb`](https://github.com/ren8k/aws-bedrock-rag-baseline/blob/main/notebook/0_create_ingest_documents_test_kb.ipynb)の下部に`CleanUp`セクションがある．セクションのコメントアウトを外し実行することで，ノートブック上部で作成したリソースを全て削除する．
+</details>
 
 ## Next Step
 
@@ -289,3 +268,4 @@ step5. LLMによるテキスト生成
 [^0-1]: [ren8k/aws-bedrock-rag-baseline](https://github.com/ren8k/aws-bedrock-rag-baseline)
 [^2-0]: [Amazon Bedrock の Knowledge Base を Pinecone 無料枠で構築してみた](https://benjamin.co.jp/blog/technologies/bedrock-knowledgeaase-pinecone/)
 [^2-1]: [AWS Marketplace の Pinecone を Amazon Bedrock のナレッジベースとして利用する](https://aws.amazon.com/jp/blogs/news/leveraging-pinecone-on-aws-marketplace-as-a-knowledge-base-for-amazon-bedrock/)
+[^2-2]: [Claude user document - Control output format](https://docs.anthropic.com/claude/docs/control-output-format#prefilling-claudes-response)
