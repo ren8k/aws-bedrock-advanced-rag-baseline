@@ -18,7 +18,7 @@ def get_args() -> argparse.Namespace:
     parser.add_argument(
         "--kb-id",
         type=str,
-        default="APNZCYJTKD",
+        default="XXXXXXXXXX",
         help="The ID of the Knowledge Base to use for retrieval.",
     )
     parser.add_argument(

@@ -1,12 +1,12 @@
 # Knowledge Bases for Amazon Bedrock を利用した Advanced RAG のベースライン<!-- omit in toc -->
 
-本リポジトリでは，2024/05/01 に公開された AWS 公式ブログ「[Amazon Kendra と Amazon Bedrock で構成した RAG システムに対する Advanced RAG 手法の精度寄与検証](https://aws.amazon.com/jp/blogs/news/verifying-the-accuracy-contribution-of-advanced-rag-methods-on-rag-systems-built-with-amazon-kendra-and-amazon-bedrock/)」[^0-0]で紹介されている Advanced RAG の再現実装（Python）を公開している．なお，本実装は先日公開した[本リポジトリ](https://github.com/ren8k/aws-bedrock-rag-baseline)[^0-1]をベースとしており，Naive RAG, Advanced RAG の両方を試行できるコードを用意している．
+本リポジトリでは，2024/05/01 に公開された AWS 公式ブログ「[Amazon Kendra と Amazon Bedrock で構成した RAG システムに対する Advanced RAG 手法の精度寄与検証](https://aws.amazon.com/jp/blogs/news/verifying-the-accuracy-contribution-of-advanced-rag-methods-on-rag-systems-built-with-amazon-kendra-and-amazon-bedrock/)」[^0-0]で紹介されている Advanced RAG の再現実装（Python）を公開している．なお，本実装は先日公開した[リポジトリ](https://github.com/ren8k/aws-bedrock-rag-baseline)[^0-1]をベースとしており，Naive RAG，Advanced RAG の両方を試行できるコードを用意している．
 
 ## TL;DR<!-- omit in toc -->
 
 - boto3 ベースで Advanced RAG の実装を行った（以下概要図）．
-- AWS 公式ブログ[^0-0]で言及されている，非同期処理による LLM, Retrieve の並列実行にも取り組んでいる．
-- Claude3 Haiku, Command R+ を利用した Advanced RAG に対応しており，その他のモデルの利用拡張も容易に行える設計である．
+- AWS 公式ブログ[^0-0]で言及されている，非同期処理による LLM，Retriever の並列実行にも取り組んでいる．
+- Claude3 Haiku，Command R+ を利用した Advanced RAG に対応しており，その他のモデルの利用拡張も容易に行える設計である．
 - LLM の引数設定，プロンプトなどは yaml ファイルで管理している．
 
 <img src="./assets/advanced-rag-architecture.png" width="800">
@@ -33,11 +33,11 @@ Advanced RAG の方法論などをまとめた記事は多く存在するが，�
 
 ## 目的
 
-boto3 のみを利用して Advanced RAG および Naive Rag を実装する．また，Python スクリプトベースで実装し，初学者にも理解しやすく，実用的なベースラインを公開する．
+boto3 のみを利用して Advanced RAG および Naive Rag を実装することで，Advanced RAG の理解を深める．また，Python スクリプトベースで実装し，初学者にも理解しやすく，実用的なベースラインを公開する．
 
 ## オリジナリティ
 
-- LangChain を利用せず，boto のみを利用して実装している．
+- LangChain を利用せず，boto3 のみを利用して実装している．
 - Knowledge Base を Retrieve API 経由で利用することで，Claude3 Haiku や Command R+で質問応答を行っている．
 - 利用する LLM を容易に切り替えられるようシンプルな設計にしている．
   - LLM，Retriever, PromptConfig というクラスを定義しており，機能追加に対して柔軟に対応できるようにしている．
@@ -48,10 +48,10 @@ boto3 のみを利用して Advanced RAG および Naive Rag を実装する．�
 
 - バージニア北部リージョン（`us-east-1`）での実行を前提としている．
 - Knowledge Base の DB としては，Pinecone を利用している．
-  - Pinecone 無料枠を利用することで，ランニングコストゼロでベクトルデータベースを構築可能．
+  - Pinecone 無料枠を利用することで，ランニングコストゼロでベクトルデータベースを構築・維持可能．
 - `requirements.txt` に記載のライブラリがインストールされている．
   - `pip install -r requirements.txt` でインストール可能．
-- `適切な認証情報の設定・ロールの設定がなされている．
+- 適切な認証情報の設定・ロールの設定がなされている．
   - 設定が面倒な場合，Cloud9 上で実行しても良い．
 - Bedrock のモデルアクセスの有効化が適切になされている．
   - 本リポジトリ上のコードでは，Claude3 Haiku, Command R+ を利用している．
