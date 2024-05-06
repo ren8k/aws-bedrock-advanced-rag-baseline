@@ -81,7 +81,7 @@ boto3 のみを利用して Advanced RAG および Naive Rag を実装するこ�
 
 ### Advanced RAG による質問応答の実行
 
-検索したい内容やプロンプトの雛形を yaml ファイルに定義しておき，python スクリプト（[`advanced_rag.py`](https://github.com/ren8k/aws-bedrock-advanced-rag-baseline/blob/main/src/advanced_rag.py)）を実行することで，Advanced RAG による質問応答を行う．以降，実行例およびコードの解説を行う．
+検索したい内容やプロンプトの雛形を yaml ファイルに定義しておき，python スクリプト（[`advanced_rag.py`](https://github.com/ren8k/aws-bedrock-advanced-rag-baseline/blob/main/src/advanced_rag.py)）を実行することで，Advanced RAG による質問応答を行う．なお，利用しているプロンプトについては AWS 公式ブログ[^0-0]のものを利用している．以降，実行例およびコードの解説を行う．
 
 #### 実行例
 
@@ -91,7 +91,7 @@ boto3 のみを利用して Advanced RAG および Naive Rag を実装するこ�
 python advanced_rag.py --kb-id <Knowledge Base の ID> --relevance-eval
 ```
 
-以下に，`advanced_rag.py`におけるコマンド引数の説明を行う．
+以下に`advanced_rag.py`におけるコマンド引数の説明を行う．
 
 | 引数               | 説明                                                          |
 | ------------------ | ------------------------------------------------------------- |
@@ -156,7 +156,10 @@ step5. LLMによるテキスト生成
 
 <br>
 
-以下に，各 config ファイルを示す．
+以下に各 config ファイルを示す．
+
+<br>
+
 **`config/query/query.yaml`**
 
 ```yaml
@@ -302,6 +305,8 @@ def eval_relevance_parallel(
 ```
 
 以下に利用している cofig ファイルを示す．
+
+<br>
 
 **`config/prompt_template/relevance_eval.yaml`**
 
