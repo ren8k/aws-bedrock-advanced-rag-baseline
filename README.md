@@ -344,13 +344,15 @@ model_id: anthropic.claude-3-haiku-20240307-v1:0
 
 <details>
 <summary>step4. プロンプト拡張</summary>
-　step3. で最終的に Claude3 が`True`と判断した抜粋のみを抽出し，これを元にプロンプトを拡張する．本ステップではNaive Ragでのプロンプト拡張と同様の考え方である．
+　step3. で最終的に Claude3 が`True`と判断した抜粋のみを抽出し，これを元にプロンプトを拡張する．本ステップはNaive Ragでのプロンプト拡張と同様の考え方である．
 
 </details>
 
 <details>
 <summary>step5. テキスト生成</summary>
 　step4. で拡張したプロンプトを利用して，最終的に Claude3 Haiku による回答生成を行う．以下に利用している config ファイルを示す．
+
+<br>
 
 **`config/prompt_template/rag.yaml`**
 
