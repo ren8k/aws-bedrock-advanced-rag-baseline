@@ -78,7 +78,6 @@ def main(args: argparse.Namespace) -> None:
         )
         multi_contexts = llm.eval_relevance_parallel(
             args.region,
-            prompt_conf.model_id,
             prompt_conf,
             prompts_and_contexts,
             max_workers=10,
