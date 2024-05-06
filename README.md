@@ -253,7 +253,7 @@ def retrieve_parallel(
 <summary>step3. 関連度評価</summary>
 　step2での検索結果が，元のユーザーからの質問（クエリ）に関連したものになっているかを評価する．これにより，検索で得られた抜粋内に誤った回答を誘発しうる情報がある場合，それを排除することにより，回答の精度向上を狙いとしている．
 
-本実装では，Claude3 Haiku を利用し，全ての検索結果の抜粋に対して質問者のクエリとの関連度を評価している．また，step2 と同様，非同期処理による並列実行により，効率的に処理を行っている．（以下に該当部分を示す．ここでは，10 並列で処理を行っている．）
+本実装では，Claude3 Haiku を利用し，全ての検索結果の抜粋に対して質問者のクエリとの関連度を評価している．また，step2 と同様，非同期処理による並列実行により，効率的に処理を行っている．（以下に該当部分を示す．ここでは，10 並列で処理を行っている．）また，Claude3 は，`True` または `False` のバイナリスコアを返すようにプロンプトを工夫しており，`True` の場合は関連があると判断し，`False` の場合は関連がないと判断している．
 
 ```python
 @classmethod
@@ -338,15 +338,56 @@ model_id: anthropic.claude-3-haiku-20240307-v1:0
 
 <details>
 <summary>step4. プロンプト拡張</summary>
-
-大規模言語モデル (LLM) とチャット形式で対話することができます。LLM と直接対話するプラットフォームが存在するおかげで、細かいユースケースや新しいユースケースに迅速に対応することができます。また、プロンプトエンジニアリングの検証用環境としても有効です。
+　step3. で最終的に Claude3 が`True`と判断した抜粋のみを抽出し，これを元にプロンプトを拡張する．本ステップではNaive Ragでのプロンプト拡張と同様の考え方である．
 
 </details>
 
 <details>
 <summary>step5. テキスト生成</summary>
+　step4. で拡張したプロンプトを利用して，最終的に Claude3 Haiku による回答生成を行う．以下に利用している config ファイルを示す．
 
-大規模言語モデル (LLM) とチャット形式で対話することができます。LLM と直接対話するプラットフォームが存在するおかげで、細かいユースケースや新しいユースケースに迅速に対応することができます。また、プロンプトエンジニアリングの検証用環境としても有効です。
+**`config/prompt_template/rag.yaml`**
+
+```yaml
+template: |
+  あなたは親切で知識豊富なチャットアシスタントです。
+  <excerpts>タグには、ユーザーが知りたい情報に関連する複数のドキュメントの抜粋が含まれています。
+
+  <excerpts>{contexts}</excerpts>
+
+  これらの情報をもとに、<question>タグ内のユーザーの質問に対する回答を提供してください。
+
+  <question>{query}</question>
+
+  まず、質問に対して<excerpts>タグ内にある情報で答えられるかを考え、<related>true</related>、もしくは、<related>false</related>の形式で答えてください。
+
+  質問に答えるための情報がない場合は、「情報が不十分で回答できません」と答えてください。
+  また、質問への回答は以下の点に留意してください:
+
+  - <excerpts>タグの内容を参考にするが、回答に<excerpts>タグを含めないこと。
+  - 簡潔に3つ以内のセンテンスで回答すること。
+  - 日本語で回答すること。
+  - 質問への回答は<answer></answer>タグに含めること。
+```
+
+<br>
+
+**`config/llm/claude-3_rag.yaml`**
+
+```yaml
+anthropic_version: bedrock-2023-05-31
+max_tokens: 1000
+temperature: 0
+system: Respond only the answer in Japanese.
+messages:
+  [{ "role": "user", "content": [{ "type": "text", "text": "{prompt}" }] }]
+stop_sequences: ["</output>"]
+
+stream: false
+model_id: anthropic.claude-3-haiku-20240307-v1:0
+# model_id: anthropic.claude-3-sonnet-20240229-v1:0
+# model_id: anthropic.claude-3-opus-20240229-v1:0
+```
 
 </details>
 
