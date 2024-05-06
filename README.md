@@ -21,6 +21,10 @@
 - [手順の各ステップの詳細](#手順の各ステップの詳細)
   - [Knowledge Base for Amazon Bedrock の構築（スキップ可能）](#knowledge-base-for-amazon-bedrock-の構築スキップ可能)
   - [Advanced RAG による質問応答の実行](#advanced-rag-による質問応答の実行)
+    - [実行例](#実行例)
+    - [advanced\_rag.py のアルゴリズム](#advanced_ragpy-のアルゴリズム)
+      - [`config/query/query.yaml`](#configqueryqueryyaml)
+      - [`config/prompt_template/query_expansion.yaml`](#configprompt_templatequery_expansionyaml)
   - [CleanUp（スキップ可能）](#cleanupスキップ可能)
 - [Next Step](#next-step)
 - [References](#references)
@@ -79,16 +83,103 @@ boto3 のみを利用してシンプルな RAG を実装する．また，Python
 
 ### Advanced RAG による質問応答の実行
 
-検索したい内容やプロンプトの雛形を yaml ファイルに定義しておき，python スクリプト（[`main.py`](https://github.com/ren8k/aws-bedrock-rag-baseline/blob/main/src/main.py)）を実行することで，RAG による質問応答を行う．
+検索したい内容やプロンプトの雛形を yaml ファイルに定義しておき，python スクリプト（[`advanced_rag.py`](https://github.com/ren8k/aws-bedrock-advanced-rag-baseline/blob/main/src/advanced_rag.py)）を実行することで，Advanced RAG による質問応答を行う．以降，実行例およびコードの解説を行う．
 
-- 検索したい事項を[`./config/query/query.yaml`](https://github.com/ren8k/aws-bedrock-rag-baseline/blob/main/config/query/query.yaml)に記載する．
-  <details>
-  <summary>query.yamlの中身（例）</summary>
-  <br/>
+#### 実行例
 
+[`./src`](https://github.com/ren8k/aws-bedrock-advanced-rag-baseline/tree/main/src)ディレクトリに移動し，以下を実行する．
+
+```
+python advanced_rag.py --kb-id <Knowledge Base の ID> --relevance-eval
+```
+
+以下に，`advanced_rag.py`におけるコマンド引数の説明を行う．
+
+| 引数               | 説明                                                          |
+| ------------------ | ------------------------------------------------------------- |
+| `--kb-id`          | Knowledge Base の ID                                          |
+| `--relevance-eval` | 検索結果の関連度評価を行うか否か（`sotre_true`）              |
+| `--region`         | リージョン（default: `us-east-1`）                            |
+| `--config-path`    | 設定ファイルパス（default: `../config/config_claude-3.yaml`） |
+
+#### advanced_rag.py のアルゴリズム
+
+記事[^0-0]の内容に従い，以下のフローで Advanced RAG を実行している．
+
+```
+step1. クエリ拡張
+step2. ベクトル検索
+step3. ベクトル検索結果の関連度評価
+step4. step3で絞り込んだ結果を元に，プロンプト拡張
+step5. LLMによるテキスト生成
+```
+
+また，各 step で利用している config ファイルは以下の通りである．(LLM を利用する step で config ファイルを用意している．)
+
+| step  | 処理内容       | config ファイル                                                                                                                 |
+| ----- | -------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| step1 | クエリ拡張     | - `config/query/query.yaml`<br>- `config/llm/claude-3_query_expansion.yaml` <br>- `config/prompt_template/query_expansion.yaml` |
+| step2 | ベクトル検索   | -                                                                                                                               |
+| step3 | 関連度評価     | - `config/llm/claude-3_relevance_eval.yaml` <br>- `config/prompt_template/relevance_eval.yaml`                                  |
+| step4 | プロンプト拡張 | -                                                                                                                               |
+| step5 | テキスト生成   | - `config/llm/claude-3_rag.yaml` <br>- `config/config/prompt_template/rag.yaml`                                                 |
+
+以降，各ステップにおける処理と各ステップで利用する cofig ファイルについて説明する．
+
+<details>
+  <summary>step1. クエリ拡張</summary>
+  単一のクエリを表記揺れや表現などを考慮した複数のクエリに拡張することで，多様な検索結果を取得する．これにより，生成される回答の適合性を高めることを狙いとしている．以下のconfigファイルに検索したい事項やプロンプトテンプレートを定義する．
+  
+  - `config/query/query.yaml`: 検索したい事項（この内容が拡張される）
+  - `config/prompt_template/query_expansion.yaml`: クエリ拡張のためのプロンプトテンプレート
+  - `config/llm/claude-3_query_expansion.yaml`: Claude3の設定
+  
+  ##### `config/query/query.yaml`
   ```yaml
   "query": "What is Amazon doing in the field of generative AI?"
   ```
+  
+  ##### `config/prompt_template/query_expansion.yaml`
+  ```yaml
+  retries: 3
+  n_queries: 3
+  output_format: JSON形式で、各キーには単一のクエリを格納する。
+  template: |
+    検索エンジンに入力するクエリを最適化し、様々な角度から検索を行うことで、より適切で幅広い検索結果が得られるようにします。
+    具体的には、類義語や日本語と英語の表記揺れを考慮し、多角的な視点からクエリを生成します。
+
+    以下の<question>タグ内にはユーザーの入力した質問文が入ります。
+    この質問文に基づいて、{n_queries}個の検索用クエリを生成してください。
+    各クエリは30トークン以内とし、日本語と英語を適切に混ぜて使用することで、広範囲の文書が取得できるようにしてください。
+
+    生成されたクエリは、<format>タグ内のフォーマットに従って出力してください。
+
+    <example>
+    question: Knowledge Bases for Amazon Bedrock ではどのベクトルデータベースを使えますか？
+    query_1: Knowledge Bases for Amazon Bedrock vector databases engine DB
+    query_2: Amazon Bedrock ナレッジベース ベクトルエンジン vector databases DB
+    query_3: Amazon Bedrock RAG 検索拡張生成 埋め込みベクトル データベース エンジン
+    </example>
+
+    <format>
+    {output_format}
+    </format>
+
+    <question>
+    {question}
+    </question>
+
+````
+</details>
+
+- 検索したい事項を[`./config/query/query.yaml`](https://github.com/ren8k/aws-bedrock-rag-baseline/blob/main/config/query/query.yaml)に記載する．
+<details>
+<summary>query.yamlの中身（例）</summary>
+<br/>
+
+```yaml
+"query": "What is Amazon doing in the field of generative AI?"
+````
 
   </details>
   <br/>
