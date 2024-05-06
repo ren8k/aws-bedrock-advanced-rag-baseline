@@ -22,7 +22,7 @@
   - [Knowledge Base for Amazon Bedrock の構築（スキップ可能）](#knowledge-base-for-amazon-bedrock-の構築スキップ可能)
   - [Advanced RAG による質問応答の実行](#advanced-rag-による質問応答の実行)
     - [実行例](#実行例)
-    - [advanced\_rag.py のアルゴリズム](#advanced_ragpy-のアルゴリズム)
+    - [advanced_rag.py のアルゴリズム](#advanced_ragpy-のアルゴリズム)
   - [Naive RAG による質問応答の実行](#naive-rag-による質問応答の実行)
     - [実行例](#実行例-1)
 - [Next Step](#next-step)
@@ -268,7 +268,6 @@ def retrieve_parallel(
 def eval_relevance_parallel(
     cls,
     region: str,
-    model_id: str,
     prompt_conf: PromptConfig,
     prompts_and_contexts: list,
     max_workers: int = 10,
@@ -286,7 +285,7 @@ def eval_relevance_parallel(
         else:
             return None
 
-    llm = cls(region, model_id)
+    llm = cls(region, prompt_conf.model_id)
 
     with ThreadPoolExecutor(max_workers) as executor:
         futures = {
