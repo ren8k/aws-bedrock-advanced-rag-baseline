@@ -40,20 +40,25 @@ class Retriever:
         multi_contexts = []
         for _, retrievedResults in multiretrievalResults.items():
             contexts = self.get_contexts(retrievedResults)
-            # multi_contextsにcontextsを追加
             multi_contexts += contexts
         return multi_contexts
 
     @classmethod
-    def retrieve_parallel(cls, kb_id: str, region: str, queries: dict) -> dict:
+    def retrieve_parallel(
+        cls,
+        kb_id: str,
+        region: str,
+        queries: dict,
+        max_workers: int = 10,
+        no_of_results: int = 5,
+    ) -> dict:
         retriever = cls(kb_id, region)
         results = {}
-        with concurrent.futures.ThreadPoolExecutor(
-            max_workers=len(queries)
-        ) as executor:
+        print(len(queries))
+        with concurrent.futures.ThreadPoolExecutor(max_workers) as executor:
             # フューチャー（未来の結果）を辞書に格納
             futures = {
-                executor.submit(retriever.retrieve, query): key
+                executor.submit(retriever.retrieve, query, no_of_results): key
                 for key, query in queries.items()
             }
             for future in concurrent.futures.as_completed(futures):

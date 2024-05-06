@@ -115,6 +115,7 @@ class LLM:
         model_id: str,
         prompt_conf: PromptConfig,
         prompts_and_contexts: list,
+        max_workers: int = 10,
     ) -> list:
         results = []
 
@@ -131,7 +132,7 @@ class LLM:
 
         llm = cls(region, model_id)
 
-        with ThreadPoolExecutor(max_workers=5) as executor:
+        with ThreadPoolExecutor(max_workers) as executor:
             futures = {
                 executor.submit(
                     generate_single_message, llm, prompt_and_context

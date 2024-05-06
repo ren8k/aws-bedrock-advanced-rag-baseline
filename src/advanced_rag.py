@@ -58,7 +58,7 @@ def main(args: argparse.Namespace) -> None:
 
     # step2. Retrival contexts
     multi_retrieved_results = retriever.retrieve_parallel(
-        args.kb_id, args.region, queries_expanded
+        args.kb_id, args.region, queries_expanded, max_workers=5, no_of_results=5
     )
     multi_contexts = retriever.get_multiple_contexts(multi_retrieved_results)
     logger.info(f"Number of retrieved contexts: {len(multi_contexts)}")
@@ -71,11 +71,16 @@ def main(args: argparse.Namespace) -> None:
             config["query_path"],
             is_relevance_eval=True,
         )
+        llm = LLM(args.region, prompt_conf.model_id, prompt_conf.is_stream)
         prompts_and_contexts = prompt_conf.create_prompts_for_relevance_eval(
             queries_expanded, multi_contexts
         )
         multi_contexts = llm.eval_relevance_parallel(
-            args.region, prompt_conf.model_id, prompt_conf, prompts_and_contexts
+            args.region,
+            prompt_conf.model_id,
+            prompt_conf,
+            prompts_and_contexts,
+            max_workers=10,
         )
         logger.info(f"Number of relevant contexts: {len(multi_contexts)}")
 
