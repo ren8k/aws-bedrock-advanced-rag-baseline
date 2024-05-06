@@ -9,7 +9,7 @@
 - Claude3 Haiku, Command R+ を利用した Advanced RAG に対応しており，その他のモデルの利用拡張も容易に行える設計である．
 - LLM の引数設定，プロンプトなどは yaml ファイルで管理している．
 
-<img src="./assets/advanced-rag-architecture.png" width="600">
+<img src="./assets/advanced-rag-architecture.png" width="800">
 
 ## 目次<!-- omit in toc -->
 
@@ -29,11 +29,11 @@
 
 ## 背景
 
-Advanced RAG の方法論などをまとめた記事は多く存在するが，本日時点（2024/05/06）においてその実装例は非常に少ない．特に，boto3 を利用した Advanced RAG の実装例は本リポジトリでは LangChain を利用せず，boto3 のみを利用して シンプルな RAG を実装した．
+Advanced RAG の方法論などをまとめた記事は多く存在するが，本日時点（2024/05/06）において，その実装例は非常に少ない．特に，boto3 を利用した Advanced RAG の実装例は極めて少ない．本リポジトリでは boto3 のみを利用し，Advanced RAG および Naive Rag を実装した．
 
 ## 目的
 
-boto3 のみを利用してシンプルな RAG を実装する．また，Python スクリプトベースで実装し，初学者にも理解しやすく，実用的なベースラインを公開する．
+boto3 のみを利用して Advanced RAG および Naive Rag を実装する．また，Python スクリプトベースで実装し，初学者にも理解しやすく，実用的なベースラインを公開する．
 
 ## オリジナリティ
 
@@ -73,7 +73,7 @@ boto3 のみを利用してシンプルな RAG を実装する．また，Python
 - 無料枠の場合，バージニア北部(us-east-1)リージョンのみ利用可能である．
 - 埋め込みモデルとして`Cohere-embed-multilingual-v3.0`を利用する．
 - バージニア北部リージョンにて Secrets Manager を作成し，Pinecone の API キーを保存する．
-- 簡単のため，データソースの S3 には以下の 2020 ~ 2023 年度の Amazon の株主向け年次報告書を格納し，これを Embeddings vector に変換している．
+- 簡単のため，データソースの S3 には以下の 2020 ~ 2023 年度の Amazon の株主向け年次報告書を格納し，これを Embedding vector に変換している．
   - https://s2.q4cdn.com/299287126/files/doc_financials/2023/ar/2022-Shareholder-Letter.pdf
   - https://s2.q4cdn.com/299287126/files/doc_financials/2022/ar/2021-Shareholder-Letter.pdf
   - https://s2.q4cdn.com/299287126/files/doc_financials/2021/ar/Amazon-2020-Shareholder-Letter-and-1997-Shareholder-Letter.pdf
@@ -405,9 +405,14 @@ model_id: anthropic.claude-3-haiku-20240307-v1:0
 python naive_rag.py --kb-id <Knowledge Base の ID>
 ```
 
+なお，Naive RAG による質疑応答の実装については，先日公開したリポジトリとほぼ同様である．以下に実装の概要図を示す．
+
+<img src="./assets/naive-rag-architecture.png" width="600">
+
 ## Next Step
 
 - Advanced RAG の その他手法（Hypothetical Document Embeddings (HyDE)など）の実装
+  - PreRetrieval, PostRetrieval などのクラスを用意しても良いかもしれない
 - その他モデルにも対応した実装
 
 ## References
