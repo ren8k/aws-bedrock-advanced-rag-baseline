@@ -54,9 +54,8 @@ class Retriever:
     ) -> dict:
         retriever = cls(kb_id, region)
         results = {}
-        print(len(queries))
+
         with concurrent.futures.ThreadPoolExecutor(max_workers) as executor:
-            # フューチャー（未来の結果）を辞書に格納
             futures = {
                 executor.submit(retriever.retrieve, query, no_of_results): key
                 for key, query in queries.items()

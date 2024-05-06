@@ -18,7 +18,7 @@ def get_args() -> argparse.Namespace:
     parser.add_argument(
         "--kb-id",
         type=str,
-        default="APNZCYJTKD",
+        default="XXXXXXXXXX",
         help="The ID of the Knowledge Base to use for retrieval.",
     )
     parser.add_argument(
@@ -55,6 +55,7 @@ def main(args: argparse.Namespace) -> None:
     )
     llm = LLM(args.region, prompt_conf.model_id, prompt_conf.is_stream)
     queries_expanded = llm.expand_queries(prompt_conf)
+    logger.info(f"Expanded queries: {queries_expanded}")
 
     # step2. Retrival contexts
     multi_retrieved_results = retriever.retrieve_parallel(
