@@ -23,6 +23,7 @@
   - [Advanced RAG による質問応答の実行](#advanced-rag-による質問応答の実行)
     - [実行例](#実行例)
     - [advanced\_rag.py のアルゴリズム](#advanced_ragpy-のアルゴリズム)
+  - [Naive RAG による質疑応答の実行](#naive-rag-による質疑応答の実行)
 - [Next Step](#next-step)
 - [References](#references)
 
@@ -98,6 +99,11 @@ python advanced_rag.py --kb-id <Knowledge Base の ID> --relevance-eval
 | `--relevance-eval` | 検索結果の関連度評価を行うか否か（`sotre_true`）              |
 | `--region`         | リージョン（default: `us-east-1`）                            |
 | `--config-path`    | 設定ファイルパス（default: `../config/config_claude-3.yaml`） |
+
+引数`--config-path`では，Advanced RAG で利用する LLM の設定ファイルやプロンプトテンプレートのパスを定義している．本リポジトリでは，以下の config ファイルを用意している．
+
+- `config/config_claude-3.yaml`: Claude3 Haiku 用の cofig ファイル
+- `config/config_command-r-plus.yaml`: Command R+ 用の cofig ファイル
 
 #### advanced_rag.py のアルゴリズム
 
@@ -391,7 +397,18 @@ model_id: anthropic.claude-3-haiku-20240307-v1:0
 
 </details>
 
+### Naive RAG による質疑応答の実行
+
+[`./src`](https://github.com/ren8k/aws-bedrock-advanced-rag-baseline/tree/main/src)ディレクトリに移動し，以下を実行する．
+
+```
+python naive_rag.py --kb-id <Knowledge Base の ID>
+```
+
 ## Next Step
+
+- Advanced RAG の その他手法（Hypothetical Document Embeddings (HyDE)など）の実装
+- その他モデルにも対応した実装
 
 ## References
 
