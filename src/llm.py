@@ -63,8 +63,8 @@ class LLM:
 
     # TODO: split method for each model.
     def _show_generated_stream_text(self, event: dict) -> None:
+        chunk = json.loads(event["chunk"]["bytes"])
         if "claude-3" in self.model_id:
-            chunk = json.loads(event["chunk"]["bytes"])
             if chunk["type"] == "content_block_delta":
                 if chunk["delta"]["type"] == "text_delta":
                     print(chunk["delta"]["text"], end="")
@@ -76,7 +76,6 @@ class LLM:
 
         elif "command-r-plus" in self.model_id:
             # https://docs.cohere.com/docs/streaming
-            chunk = json.loads(event["chunk"]["bytes"])
             if chunk["event_type"] == "text-generation":
                 print(chunk["text"], end="")
             elif chunk["event_type"] == "stream-end":
