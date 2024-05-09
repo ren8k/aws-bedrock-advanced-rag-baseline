@@ -22,7 +22,7 @@
   - [Knowledge Base for Amazon Bedrock の構築（スキップ可能）](#knowledge-base-for-amazon-bedrock-の構築スキップ可能)
   - [Advanced RAG による質問応答の実行](#advanced-rag-による質問応答の実行)
     - [実行例](#実行例)
-    - [advanced\_rag.py のアルゴリズム](#advanced_ragpy-のアルゴリズム)
+    - [advanced_rag.py のアルゴリズム](#advanced_ragpy-のアルゴリズム)
   - [Naive RAG による質問応答の実行](#naive-rag-による質問応答の実行)
     - [実行例](#実行例-1)
 - [Next Step](#next-step)
@@ -50,7 +50,7 @@ boto3 のみを利用して Advanced RAG および Naive Rag を実装するこ�
 - バージニア北部リージョン（`us-east-1`）での実行を前提としている．
 - Knowledge Base の DB としては，Pinecone を利用している．
   - Pinecone 無料枠を利用することで，ランニングコストゼロでベクトルデータベースを構築・維持可能．
-- `requirements.txt` に記載のライブラリがインストールされている．
+- `requirements.txt` に記載のライブラリがインストールされている．（Python3.10 以上を推奨）
   - `pip install -r requirements.txt` でインストール可能．
 - 適切な認証情報の設定・ロールの設定がなされている．
   - 設定が面倒な場合，Cloud9 上で実行しても良い．
