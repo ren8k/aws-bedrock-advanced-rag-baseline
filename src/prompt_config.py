@@ -10,19 +10,19 @@ import utils
 class PromptConfig:
     def __init__(
         self,
-        config_path: str,
+        llm_args_path: str,
         template_path: str,
         query_path: str,
         is_query_expansion: bool = False,
         is_relevance_eval: bool = False,
     ) -> None:
-        self.config = utils.load_yaml(config_path)
-        self.config_org = copy.deepcopy(self.config)
+        self.llm_args = utils.load_yaml(llm_args_path)
+        self.llm_args_org = copy.deepcopy(self.llm_args)
         self.template = utils.load_yaml(template_path)["template"]
         self.query = utils.load_yaml(query_path)["query"]
-        self.model_id = self.config.pop("model_id")
+        self.model_id = self.llm_args.pop("model_id")
         self.prompt = ""
-        self.is_stream = self.config.pop("stream")
+        self.is_stream = self.llm_args.pop("stream")
 
         # Query Expansion
         if is_query_expansion:
@@ -51,14 +51,14 @@ class PromptConfig:
             self._format_message_command_r_plus(args)
 
     def _format_message_claude3(self, args: dict) -> None:
-        message = self.config["messages"][0]["content"][0]["text"]
+        message = self.llm_args["messages"][0]["content"][0]["text"]
         self._check_args(message, args)
-        self.config["messages"][0]["content"][0]["text"] = message.format(**args)
+        self.llm_args["messages"][0]["content"][0]["text"] = message.format(**args)
 
     def _format_message_command_r_plus(self, args: dict) -> None:
-        message = self.config["message"]
+        message = self.llm_args["message"]
         self._check_args(message, args)
-        self.config["message"] = message.format(**args)
+        self.llm_args["message"] = message.format(**args)
 
     def _format_template(self, template: str, args: dict) -> None:
         self._check_args(template, args)

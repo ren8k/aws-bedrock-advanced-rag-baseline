@@ -91,7 +91,7 @@ def main(args: argparse.Namespace) -> None:
     llm = LLM(args.region, prompt_conf.model_id, prompt_conf.is_stream)
     prompt_conf.format_prompt({"contexts": multi_contexts, "query": prompt_conf.query})
     prompt_conf.format_message({"prompt": prompt_conf.prompt})
-    body = json.dumps(prompt_conf.config)
+    body = json.dumps(prompt_conf.llm_args)
 
     # step5. Generate message
     generated_text = llm.generate(body)

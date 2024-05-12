@@ -87,7 +87,7 @@ class LLM:
 
     def expand_queries(self, prompt_conf: PromptConfig) -> None:
         prompt_conf.format_message({"prompt": prompt_conf.prompt_query_expansion})
-        body = json.dumps(prompt_conf.config)
+        body = json.dumps(prompt_conf.llm_args)
 
         for attempt in range(prompt_conf.retries):
             try:
@@ -120,7 +120,7 @@ class LLM:
         def generate_single_message(llm: LLM, prompt_and_context: dict):
             prompt_conf_tmp = copy.deepcopy(prompt_conf)
             prompt_conf_tmp.format_message({"prompt": prompt_and_context["prompt"]})
-            body = json.dumps(prompt_conf_tmp.config)
+            body = json.dumps(prompt_conf_tmp.llm_args)
             is_relevant = llm.generate_message(body)
 
             if is_relevant == "True":
