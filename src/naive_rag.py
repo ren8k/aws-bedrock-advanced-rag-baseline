@@ -52,7 +52,7 @@ def main(args: argparse.Namespace) -> None:
     # Augument prompt
     prompt_conf.format_prompt({"contexts": contexts, "query": prompt_conf.query})
     prompt_conf.format_message({"prompt": prompt_conf.prompt})
-    body = json.dumps(prompt_conf.config)
+    body = json.dumps(prompt_conf.llm_args)
 
     # Generate message
     generated_text = llm.generate(body)
