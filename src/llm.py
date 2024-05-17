@@ -8,6 +8,7 @@ import boto3
 from botocore.config import Config
 from botocore.exceptions import ClientError
 
+from llm_config import LLMConfig
 from prompt_config import PromptConfig
 
 logger = logging.getLogger(__name__)
@@ -61,33 +62,36 @@ class LLM:
             message = err.response["Error"]["Message"]
             logger.error("A client error occurred: %s", message)
 
-    # TODO: split method for each model.
     def _show_generated_stream_text(self, event: dict) -> None:
         chunk = json.loads(event["chunk"]["bytes"])
         if "claude-3" in self.model_id:
-            if chunk["type"] == "content_block_delta":
-                if chunk["delta"]["type"] == "text_delta":
-                    print(chunk["delta"]["text"], end="")
-            elif chunk["type"] == "message_delta":
-                print("\n")
-                print(f"\nStop reason: {chunk['delta']['stop_reason']}")
-                print(f"Stop sequence: {chunk['delta']['stop_sequence']}")
-                print(f"Output tokens: {chunk['usage']['output_tokens']}")
-
+            self._show_generated_stream_text_claude(chunk)
         elif "command-r-plus" in self.model_id:
-            # https://docs.cohere.com/docs/streaming
-            if chunk["event_type"] == "text-generation":
-                print(chunk["text"], end="")
-            elif chunk["event_type"] == "stream-end":
-                print("\n")
-                print(f"\nStop reason: {chunk['finish_reason']}")
-                print(
-                    f"Output tokens: {chunk['amazon-bedrock-invocationMetrics']['outputTokenCount']}"
-                )
+            self._show_generated_stream_text_command_r_plus(chunk)
 
-    def expand_queries(self, prompt_conf: PromptConfig) -> None:
-        prompt_conf.format_message({"prompt": prompt_conf.prompt_query_expansion})
-        body = json.dumps(prompt_conf.llm_args)
+    def _show_generated_stream_text_claude(self, chunk: dict) -> None:
+        if chunk["type"] == "content_block_delta":
+            if chunk["delta"]["type"] == "text_delta":
+                print(chunk["delta"]["text"], end="")
+        elif chunk["type"] == "message_delta":
+            print("\n")
+            print(f"\nStop reason: {chunk['delta']['stop_reason']}")
+            print(f"Stop sequence: {chunk['delta']['stop_sequence']}")
+            print(f"Output tokens: {chunk['usage']['output_tokens']}")
+
+    def _show_generated_stream_text_command_r_plus(self, chunk: dict) -> None:
+        if chunk["event_type"] == "text-generation":
+            print(chunk["text"], end="")
+        elif chunk["event_type"] == "stream-end":
+            print("\n")
+            print(f"\nStop reason: {chunk['finish_reason']}")
+            print(
+                f"Output tokens: {chunk['amazon-bedrock-invocationMetrics']['outputTokenCount']}"
+            )
+
+    def expand_queries(self, llm_conf: LLMConfig, prompt_conf: PromptConfig) -> None:
+        llm_conf.format_message(prompt_conf.prompt_query_expansion)
+        body = json.dumps(llm_conf.llm_args)
 
         for attempt in range(prompt_conf.retries):
             try:
@@ -111,16 +115,18 @@ class LLM:
     def eval_relevance_parallel(
         cls,
         region: str,
-        prompt_conf: PromptConfig,
+        llm_conf: LLMConfig,
         prompts_and_contexts: list,
         max_workers: int = 10,
     ) -> list:
         results = []
 
-        def generate_single_message(llm: LLM, prompt_and_context: dict):
-            prompt_conf_tmp = copy.deepcopy(prompt_conf)
-            prompt_conf_tmp.format_message({"prompt": prompt_and_context["prompt"]})
-            body = json.dumps(prompt_conf_tmp.llm_args)
+        def generate_single_message(
+            llm: LLM, llm_conf: LLMConfig, prompt_and_context: dict
+        ):
+            llm_conf_tmp = copy.deepcopy(llm_conf)
+            llm_conf_tmp.format_message(prompt_and_context["prompt"])
+            body = json.dumps(llm_conf_tmp.llm_args)
             is_relevant = llm.generate_message(body)
 
             if is_relevant == "True":
@@ -128,12 +134,12 @@ class LLM:
             else:
                 return None
 
-        llm = cls(region, prompt_conf.model_id)
+        llm = cls(region, llm_conf.model_id)
 
         with ThreadPoolExecutor(max_workers) as executor:
             futures = {
                 executor.submit(
-                    generate_single_message, llm, prompt_and_context
+                    generate_single_message, llm, llm_conf, prompt_and_context
                 ): prompt_and_context
                 for prompt_and_context in prompts_and_contexts
             }

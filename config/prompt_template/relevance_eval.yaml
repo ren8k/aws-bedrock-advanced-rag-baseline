@@ -1,4 +1,4 @@
-format_instructions: True or False
+format_instructions: TrueまたはFalseのみ回答すること。
 template: |
   あなたは、ユーザーからの質問と検索で得られたドキュメントの関連度を評価する専門家です。
   <excerpt>タグ内は、検索により取得したドキュメントの抜粋です。
@@ -10,6 +10,6 @@ template: |
   <question>{question}</question>
 
   このドキュメントの抜粋は、ユーザーの質問に回答するための正確な情報を含んでいるかを慎重に判断してください。
-  正確な情報を含んでいる場合は 'yes'、含んでいない場合は 'no' のバイナリスコアを返してください。
+  正確な情報を含んでいる場合は 'True'、含んでいない場合は 'False' を返してください。
 
   {format_instructions}

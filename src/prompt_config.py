@@ -2,27 +2,20 @@ import copy
 import re
 from typing import Any
 
-import yaml
-
 import utils
 
 
 class PromptConfig:
     def __init__(
         self,
-        llm_args_path: str,
         template_path: str,
         query_path: str,
         is_query_expansion: bool = False,
         is_relevance_eval: bool = False,
     ) -> None:
-        self.llm_args = utils.load_yaml(llm_args_path)
-        self.llm_args_org = copy.deepcopy(self.llm_args)
         self.template = utils.load_yaml(template_path)["template"]
         self.query = utils.load_yaml(query_path)["query"]
-        self.model_id = self.llm_args.pop("model_id")
         self.prompt = ""
-        self.is_stream = self.llm_args.pop("stream")
 
         # Query Expansion
         if is_query_expansion:
@@ -38,35 +31,19 @@ class PromptConfig:
             self.retries = self.query_expansion_conf["retries"]
 
         if is_relevance_eval:
-            self.relevance_eval_conf = utils.load_yaml(template_path)
+            self.format_instructions = utils.load_yaml(template_path)[
+                "format_instructions"
+            ]
 
     def format_prompt(self, args: dict) -> None:
         self._check_args(self.template, args)
         self.prompt = self.template.format(**args)
 
-    def format_message(self, args: dict) -> None:
-        if "claude-3" in self.model_id:
-            self._format_message_claude3(args)
-        elif "command-r-plus" in self.model_id:
-            self._format_message_command_r_plus(args)
-
-    def _format_message_claude3(self, args: dict) -> None:
-        message = self.llm_args["messages"][0]["content"][0]["text"]
-        self._check_args(message, args)
-        self.llm_args["messages"][0]["content"][0]["text"] = message.format(**args)
-
-    def _format_message_command_r_plus(self, args: dict) -> None:
-        message = self.llm_args["message"]
-        self._check_args(message, args)
-        self.llm_args["message"] = message.format(**args)
-
     def _format_template(self, template: str, args: dict) -> None:
         self._check_args(template, args)
         return template.format(**args)
 
-    def create_prompts_for_relevance_eval(
-        self, query_expanded: dict, multi_contexts: list
-    ) -> list:
+    def create_prompts_for_relevance_eval(self, multi_contexts: list) -> list:
         prompts = []
         for context in multi_contexts:
             prompt = self._format_template(
@@ -74,9 +51,7 @@ class PromptConfig:
                 {
                     "context": context,
                     "question": self.query,
-                    "format_instructions": self.relevance_eval_conf[
-                        "format_instructions"
-                    ],
+                    "format_instructions": self.format_instructions,
                 },
             )
             prompts.append({"prompt": prompt, "context": context})
