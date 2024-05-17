@@ -61,29 +61,32 @@ class LLM:
             message = err.response["Error"]["Message"]
             logger.error("A client error occurred: %s", message)
 
-    # TODO: split method for each model.
     def _show_generated_stream_text(self, event: dict) -> None:
         chunk = json.loads(event["chunk"]["bytes"])
         if "claude-3" in self.model_id:
-            if chunk["type"] == "content_block_delta":
-                if chunk["delta"]["type"] == "text_delta":
-                    print(chunk["delta"]["text"], end="")
-            elif chunk["type"] == "message_delta":
-                print("\n")
-                print(f"\nStop reason: {chunk['delta']['stop_reason']}")
-                print(f"Stop sequence: {chunk['delta']['stop_sequence']}")
-                print(f"Output tokens: {chunk['usage']['output_tokens']}")
-
+            self._show_generated_stream_text_claude(chunk)
         elif "command-r-plus" in self.model_id:
-            # https://docs.cohere.com/docs/streaming
-            if chunk["event_type"] == "text-generation":
-                print(chunk["text"], end="")
-            elif chunk["event_type"] == "stream-end":
-                print("\n")
-                print(f"\nStop reason: {chunk['finish_reason']}")
-                print(
-                    f"Output tokens: {chunk['amazon-bedrock-invocationMetrics']['outputTokenCount']}"
-                )
+            self._show_generated_stream_text_command_r_plus(chunk)
+
+    def _show_generated_stream_text_claude(self, chunk: dict) -> None:
+        if chunk["type"] == "content_block_delta":
+            if chunk["delta"]["type"] == "text_delta":
+                print(chunk["delta"]["text"], end="")
+        elif chunk["type"] == "message_delta":
+            print("\n")
+            print(f"\nStop reason: {chunk['delta']['stop_reason']}")
+            print(f"Stop sequence: {chunk['delta']['stop_sequence']}")
+            print(f"Output tokens: {chunk['usage']['output_tokens']}")
+
+    def _show_generated_stream_text_command_r_plus(self, chunk: dict) -> None:
+        if chunk["event_type"] == "text-generation":
+            print(chunk["text"], end="")
+        elif chunk["event_type"] == "stream-end":
+            print("\n")
+            print(f"\nStop reason: {chunk['finish_reason']}")
+            print(
+                f"Output tokens: {chunk['amazon-bedrock-invocationMetrics']['outputTokenCount']}"
+            )
 
     def expand_queries(self, prompt_conf: PromptConfig) -> None:
         prompt_conf.format_message({"prompt": prompt_conf.prompt_query_expansion})
