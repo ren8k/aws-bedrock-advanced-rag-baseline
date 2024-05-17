@@ -74,7 +74,7 @@ def main(args: argparse.Namespace) -> None:
         )
         llm = LLM(args.region, prompt_conf.model_id, prompt_conf.is_stream)
         prompts_and_contexts = prompt_conf.create_prompts_for_relevance_eval(
-            queries_expanded, multi_contexts
+            multi_contexts
         )
         multi_contexts = llm.eval_relevance_parallel(
             args.region,

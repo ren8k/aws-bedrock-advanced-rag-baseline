@@ -64,9 +64,7 @@ class PromptConfig:
         self._check_args(template, args)
         return template.format(**args)
 
-    def create_prompts_for_relevance_eval(
-        self, query_expanded: dict, multi_contexts: list
-    ) -> list:
+    def create_prompts_for_relevance_eval(self, multi_contexts: list) -> list:
         prompts = []
         for context in multi_contexts:
             prompt = self._format_template(
