@@ -2,8 +2,6 @@ import copy
 import re
 from typing import Any
 
-import yaml
-
 import utils
 
 
