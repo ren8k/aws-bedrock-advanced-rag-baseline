@@ -3,6 +3,7 @@ import json
 import logging
 
 from llm import LLM
+from llm_config import LLMConfig
 from prompt_config import PromptConfig
 from retriever import Retriever
 from utils import load_yaml
@@ -40,10 +41,9 @@ def main(args: argparse.Namespace) -> None:
     config = load_yaml(args.config_path)
 
     retriever = Retriever(args.kb_id, args.region)
-    prompt_conf = PromptConfig(
-        config["config_llm_rag_path"], config["template_rag_path"], config["query_path"]
-    )
-    llm = LLM(args.region, prompt_conf.model_id, prompt_conf.is_stream)
+    prompt_conf = PromptConfig(config["template_rag_path"], config["query_path"])
+    llm_conf = LLMConfig(config["config_llm_rag_path"])
+    llm = LLM(args.region, llm_conf.model_id, llm_conf.is_stream)
 
     # Retrieve contexts
     retrieval_results = retriever.retrieve(prompt_conf.query)
@@ -51,8 +51,8 @@ def main(args: argparse.Namespace) -> None:
 
     # Augument prompt
     prompt_conf.format_prompt({"contexts": contexts, "query": prompt_conf.query})
-    prompt_conf.format_message({"prompt": prompt_conf.prompt})
-    body = json.dumps(prompt_conf.llm_args)
+    llm_conf.format_message(prompt_conf.prompt)
+    body = json.dumps(llm_conf.llm_args)
 
     # Generate message
     generated_text = llm.generate(body)
