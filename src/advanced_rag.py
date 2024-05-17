@@ -3,6 +3,7 @@ import json
 import logging
 
 from llm import LLM
+from llm_config import LLMConfig
 from prompt_config import PromptConfig
 from retriever import Retriever
 from utils import load_yaml
@@ -43,18 +44,17 @@ def get_args() -> argparse.Namespace:
 
 def main(args: argparse.Namespace) -> None:
     config = load_yaml(args.config_path)
-
     retriever = Retriever(args.kb_id, args.region)
 
     # step1. Expand query
     prompt_conf = PromptConfig(
-        config["config_llm_expansion_path"],
         config["template_query_expansion_path"],
         config["query_path"],
         is_query_expansion=True,
     )
-    llm = LLM(args.region, prompt_conf.model_id, prompt_conf.is_stream)
-    queries_expanded = llm.expand_queries(prompt_conf)
+    llm_conf = LLMConfig(config["config_llm_expansion_path"])
+    llm = LLM(args.region, llm_conf.model_id, llm_conf.is_stream)
+    queries_expanded = llm.expand_queries(llm_conf, prompt_conf)
     logger.info(f"Expanded queries: {queries_expanded}")
 
     # step2. Retrival contexts
@@ -67,31 +67,30 @@ def main(args: argparse.Namespace) -> None:
     if args.relevance_eval:
         # step3. Eval relevance
         prompt_conf = PromptConfig(
-            config["config_llm_relevance_eval_path"],
             config["template_relevance_eval_path"],
             config["query_path"],
             is_relevance_eval=True,
         )
-        llm = LLM(args.region, prompt_conf.model_id, prompt_conf.is_stream)
+        llm_conf = LLMConfig(config["config_llm_relevance_eval_path"])
+        llm = LLM(args.region, llm_conf.model_id, llm_conf.is_stream)
         prompts_and_contexts = prompt_conf.create_prompts_for_relevance_eval(
             multi_contexts
         )
         multi_contexts = llm.eval_relevance_parallel(
             args.region,
-            prompt_conf,
+            llm_conf,
             prompts_and_contexts,
             max_workers=10,
         )
         logger.info(f"Number of relevant contexts: {len(multi_contexts)}")
 
     # step4. Augument prompt
-    prompt_conf = PromptConfig(
-        config["config_llm_rag_path"], config["template_rag_path"], config["query_path"]
-    )
-    llm = LLM(args.region, prompt_conf.model_id, prompt_conf.is_stream)
+    prompt_conf = PromptConfig(config["template_rag_path"], config["query_path"])
+    llm_conf = LLMConfig(config["config_llm_rag_path"])
+    llm = LLM(args.region, llm_conf.model_id, llm_conf.is_stream)
     prompt_conf.format_prompt({"contexts": multi_contexts, "query": prompt_conf.query})
-    prompt_conf.format_message({"prompt": prompt_conf.prompt})
-    body = json.dumps(prompt_conf.llm_args)
+    llm_conf.format_message(prompt_conf.prompt)
+    body = json.dumps(llm_conf.llm_args)
 
     # step5. Generate message
     generated_text = llm.generate(body)
