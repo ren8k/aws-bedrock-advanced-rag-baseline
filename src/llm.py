@@ -8,6 +8,7 @@ import boto3
 from botocore.config import Config
 from botocore.exceptions import ClientError
 
+from llm_config import LLMConfig
 from prompt_config import PromptConfig
 
 logger = logging.getLogger(__name__)
@@ -88,9 +89,9 @@ class LLM:
                 f"Output tokens: {chunk['amazon-bedrock-invocationMetrics']['outputTokenCount']}"
             )
 
-    def expand_queries(self, prompt_conf: PromptConfig) -> None:
-        prompt_conf.format_message({"prompt": prompt_conf.prompt_query_expansion})
-        body = json.dumps(prompt_conf.llm_args)
+    def expand_queries(self, llm_conf: LLMConfig, prompt_conf: PromptConfig) -> None:
+        llm_conf.format_message(prompt_conf.prompt_query_expansion)
+        body = json.dumps(llm_conf.llm_args)
 
         for attempt in range(prompt_conf.retries):
             try:
@@ -114,16 +115,18 @@ class LLM:
     def eval_relevance_parallel(
         cls,
         region: str,
-        prompt_conf: PromptConfig,
+        llm_conf: LLMConfig,
         prompts_and_contexts: list,
         max_workers: int = 10,
     ) -> list:
         results = []
 
-        def generate_single_message(llm: LLM, prompt_and_context: dict):
-            prompt_conf_tmp = copy.deepcopy(prompt_conf)
-            prompt_conf_tmp.format_message({"prompt": prompt_and_context["prompt"]})
-            body = json.dumps(prompt_conf_tmp.llm_args)
+        def generate_single_message(
+            llm: LLM, llm_conf: LLMConfig, prompt_and_context: dict
+        ):
+            llm_conf_tmp = copy.deepcopy(llm_conf)
+            llm_conf_tmp.format_message(prompt_and_context["prompt"])
+            body = json.dumps(llm_conf_tmp.llm_args)
             is_relevant = llm.generate_message(body)
 
             if is_relevant == "True":
@@ -131,12 +134,12 @@ class LLM:
             else:
                 return None
 
-        llm = cls(region, prompt_conf.model_id)
+        llm = cls(region, llm_conf.model_id)
 
         with ThreadPoolExecutor(max_workers) as executor:
             futures = {
                 executor.submit(
-                    generate_single_message, llm, prompt_and_context
+                    generate_single_message, llm, llm_conf, prompt_and_context
                 ): prompt_and_context
                 for prompt_and_context in prompts_and_contexts
             }
