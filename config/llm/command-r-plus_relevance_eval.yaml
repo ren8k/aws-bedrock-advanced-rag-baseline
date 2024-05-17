@@ -2,7 +2,7 @@ max_tokens: 1000
 temperature: 0
 message: "{prompt}"
 chat_history:
-        [{ "role": "USER", "message": "Respond only true or false" },
+        [{ "role": "USER", "message": "Respond only True or False." },
         { "role": "CHATBOT", "message": "Sure."}]
 stop_sequences: ["</output>"]
 
