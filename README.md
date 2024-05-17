@@ -22,7 +22,7 @@
   - [Knowledge Base for Amazon Bedrock の構築（スキップ可能）](#knowledge-base-for-amazon-bedrock-の構築スキップ可能)
   - [Advanced RAG による質問応答の実行](#advanced-rag-による質問応答の実行)
     - [実行例](#実行例)
-    - [advanced_rag.py のアルゴリズム](#advanced_ragpy-のアルゴリズム)
+    - [advanced\_rag.py のアルゴリズム](#advanced_ragpy-のアルゴリズム)
   - [Naive RAG による質問応答の実行](#naive-rag-による質問応答の実行)
     - [実行例](#実行例-1)
 - [Next Step](#next-step)
@@ -259,7 +259,7 @@ def retrieve_parallel(
 
 <details>
 <summary>step3. 関連度評価</summary>
-　step2での検索結果が，元のユーザーからの質問（クエリ）に関連したものになっているかを評価する．これにより，検索で得られた抜粋内に誤った回答を誘発しうる情報がある場合，それを排除することにより，回答の精度向上を狙いとしている．
+　step2での検索結果が，元のユーザーからの質問（クエリ）に関連したものになっているかを評価する．検索で得られた抜粋内に誤った回答を誘発しうる情報がある場合，それを排除することにより，回答の精度が向上すると考えられる．
 
 本実装では，Claude3 Haiku を利用し，全ての検索結果の抜粋に対して質問者のクエリとの関連度を評価している．また，step2 と同様，非同期処理による並列実行により，効率的に処理を行っている．（以下に該当部分を示す．ここでは，10 並列で処理を行っている．）また，Claude3 は，`True` または `False` のバイナリスコアを返すようにプロンプトを工夫しており，`True` の場合は関連があると判断し，`False` の場合は関連がないと判断している．
 
@@ -268,16 +268,18 @@ def retrieve_parallel(
 def eval_relevance_parallel(
     cls,
     region: str,
-    prompt_conf: PromptConfig,
+    llm_conf: LLMConfig,
     prompts_and_contexts: list,
     max_workers: int = 10,
 ) -> list:
     results = []
 
-    def generate_single_message(llm: LLM, prompt_and_context: dict):
-        prompt_conf_tmp = copy.deepcopy(prompt_conf)
-        prompt_conf_tmp.format_message({"prompt": prompt_and_context["prompt"]})
-        body = json.dumps(prompt_conf_tmp.config)
+    def generate_single_message(
+        llm: LLM, llm_conf: LLMConfig, prompt_and_context: dict
+    ):
+        llm_conf_tmp = copy.deepcopy(llm_conf)
+        llm_conf_tmp.format_message(prompt_and_context["prompt"])
+        body = json.dumps(llm_conf_tmp.llm_args)
         is_relevant = llm.generate_message(body)
 
         if is_relevant == "True":
@@ -285,12 +287,12 @@ def eval_relevance_parallel(
         else:
             return None
 
-    llm = cls(region, prompt_conf.model_id)
+    llm = cls(region, llm_conf.model_id)
 
     with ThreadPoolExecutor(max_workers) as executor:
         futures = {
             executor.submit(
-                generate_single_message, llm, prompt_and_context
+                generate_single_message, llm, llm_conf, prompt_and_context
             ): prompt_and_context
             for prompt_and_context in prompts_and_contexts
         }
@@ -307,7 +309,7 @@ def eval_relevance_parallel(
 **`config/prompt_template/relevance_eval.yaml`**
 
 ```yaml
-format_instructions: True or False
+format_instructions: TrueまたはFalseのみ回答すること。
 template: |
   あなたは、ユーザーからの質問と検索で得られたドキュメントの関連度を評価する専門家です。
   <excerpt>タグ内は、検索により取得したドキュメントの抜粋です。
