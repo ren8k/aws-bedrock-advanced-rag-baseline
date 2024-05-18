@@ -89,7 +89,7 @@ class LLM:
                 f"Output tokens: {chunk['amazon-bedrock-invocationMetrics']['outputTokenCount']}"
             )
 
-    def expand_queries(self, llm_conf: LLMConfig, prompt_conf: PromptConfig) -> None:
+    def expand_queries(self, llm_conf: LLMConfig, prompt_conf: PromptConfig) -> dict:
         llm_conf.format_message(prompt_conf.prompt_query_expansion)
         body = json.dumps(llm_conf.llm_args)
 
