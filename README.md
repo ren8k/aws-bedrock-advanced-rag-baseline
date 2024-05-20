@@ -19,7 +19,7 @@
 - [前提](#前提)
 - [手順](#手順)
 - [手順の各ステップの詳細](#手順の各ステップの詳細)
-  - [Knowledge Base for Amazon Bedrock の構築（スキップ可能）](#knowledge-base-for-amazon-bedrock-の構築スキップ可能)
+  - [Knowledge Bases for Amazon Bedrock の構築（スキップ可能）](#knowledge-bases-for-amazon-bedrock-の構築スキップ可能)
   - [Advanced RAG による質問応答の実行](#advanced-rag-による質問応答の実行)
     - [実行例](#実行例)
     - [advanced\_rag.py のアルゴリズム](#advanced_ragpy-のアルゴリズム)
@@ -39,7 +39,7 @@ boto3 のみを利用して Advanced RAG および Naive Rag を実装するこ�
 ## オリジナリティ
 
 - LangChain を利用せず，boto3 のみを利用して実装している．
-- Knowledge Base を Retrieve API 経由で利用することで，Claude3 Haiku や Command R+で質問応答を行っている．
+- Knowledge Bases を Retrieve API 経由で利用することで，Claude3 Haiku や Command R+で質問応答を行っている．
 - 利用する LLM を容易に切り替えられるようシンプルな設計にしている．
   - LLM，Retriever, PromptConfig というクラスを定義しており，機能追加に対して柔軟に対応できるようにしている．
 - LLM の設定，プロンプトなどは yaml ファイルで管理している．
@@ -48,7 +48,7 @@ boto3 のみを利用して Advanced RAG および Naive Rag を実装するこ�
 ## 前提
 
 - バージニア北部リージョン（`us-east-1`）での実行を前提としている．
-- Knowledge Base の DB としては，Pinecone を利用している．
+- Knowledge Bases の DB としては，Pinecone を利用している．
   - Pinecone 無料枠を利用することで，ランニングコストゼロでベクトルデータベースを構築・維持可能．
 - `requirements.txt` に記載のライブラリがインストールされている．（Python3.10 以上を推奨）
   - `pip install -r requirements.txt` でインストール可能．
@@ -59,17 +59,17 @@ boto3 のみを利用して Advanced RAG および Naive Rag を実装するこ�
 
 ## 手順
 
-可能な限り検証コストを抑えるため，Pinecone の無料枠を利用して Knowledge Base を構築し，Advanced RAG を実現した．手順は以下の通りである．
+可能な限り検証コストを抑えるため，Pinecone の無料枠を利用して Knowledge Bases を構築し，Advanced RAG を実現した．手順は以下の通りである．
 
-- Pinecone を利用した Knowledge Base for Amazon Bedrock の構築（スキップ可能）
+- Pinecone を利用した Knowledge Bases for Amazon Bedrock の構築（スキップ可能）
 - Advanced RAG による質問応答の実行
 - Naive RAG による質疑応答の実行
 
 ## 手順の各ステップの詳細
 
-### Knowledge Base for Amazon Bedrock の構築（スキップ可能）
+### Knowledge Bases for Amazon Bedrock の構築（スキップ可能）
 
-本記事[^2-0][^2-1]を参考に，Pinecone アカウントの作成，ベクター DB のインデックスの作成を行う．以下に注意点，および Knowledge Base 作成時の設定を示す．
+本記事[^2-0][^2-1]を参考に，Pinecone アカウントの作成，ベクター DB のインデックスの作成を行う．以下に注意点，および Knowledge Bases 作成時の設定を示す．
 
 - 無料枠の場合，バージニア北部(us-east-1)リージョンのみ利用可能である．
 - 埋め込みモデルとして`Cohere-embed-multilingual-v3.0`を利用する．
@@ -89,14 +89,14 @@ boto3 のみを利用して Advanced RAG および Naive Rag を実装するこ�
 [`./src`](https://github.com/ren8k/aws-bedrock-advanced-rag-baseline/tree/main/src)ディレクトリに移動し，以下を実行する．
 
 ```
-python advanced_rag.py --kb-id <Knowledge Base の ID> --relevance-eval
+python advanced_rag.py --kb-id <Knowledge Bases の ID> --relevance-eval
 ```
 
 以下に`advanced_rag.py`におけるコマンド引数の説明を行う．
 
 | 引数               | 説明                                                          |
 | ------------------ | ------------------------------------------------------------- |
-| `--kb-id`          | Knowledge Base の ID                                          |
+| `--kb-id`          | Knowledge Bases の ID                                         |
 | `--relevance-eval` | 検索結果の関連度評価を行うか否か（`sotre_true`）              |
 | `--region`         | リージョン（default: `us-east-1`）                            |
 | `--config-path`    | 設定ファイルパス（default: `../config/config_claude-3.yaml`） |
@@ -223,7 +223,7 @@ model_id: anthropic.claude-3-haiku-20240307-v1:0
 
 <details>
 <summary>step2. ベクトル検索</summary>
-　step1.で拡張した複数のクエリを利用して，Knowledge Base でベクトル検索を行う．本実装では，元のクエリと拡張した 3 つのクエリの計 4 つのクエリで独立に検索を行い，検索毎に 5 件の抜粋を取得しているので，計 20 件分の抜粋を Retrieve している．
+　step1.で拡張した複数のクエリを利用して，Knowledge Bases でベクトル検索を行う．本実装では，元のクエリと拡張した 3 つのクエリの計 4 つのクエリで独立に検索を行い，検索毎に 5 件の抜粋を取得しているので，計 20 件分の抜粋を Retrieve している．
 また，AWS 公式ブログ[^0-0]でも言及されている通り，各クエリの検索は`concurrent.futures.ThreadPoolExecutor `を利用して並列実行している．
 
 ```python
@@ -411,7 +411,7 @@ model_id: anthropic.claude-3-haiku-20240307-v1:0
 [`./src`](https://github.com/ren8k/aws-bedrock-advanced-rag-baseline/tree/main/src)ディレクトリに移動し，以下を実行する．
 
 ```
-python naive_rag.py --kb-id <Knowledge Base の ID>
+python naive_rag.py --kb-id <Knowledge Bases の ID>
 ```
 
 なお，Naive RAG による質疑応答の実装については，先日公開したリポジトリ[^0-1]とほぼ同様である．以下に実装の概要図を示す．
@@ -428,6 +428,6 @@ python naive_rag.py --kb-id <Knowledge Base の ID>
 
 [^0-0]: [Amazon Kendra と Amazon Bedrock で構成した RAG システムに対する Advanced RAG 手法の精度寄与検証](https://aws.amazon.com/jp/blogs/news/verifying-the-accuracy-contribution-of-advanced-rag-methods-on-rag-systems-built-with-amazon-kendra-and-amazon-bedrock/)
 [^0-1]: [ren8k/aws-bedrock-rag-baseline](https://github.com/ren8k/aws-bedrock-rag-baseline)
-[^2-0]: [Amazon Bedrock の Knowledge Base を Pinecone 無料枠で構築してみた](https://benjamin.co.jp/blog/technologies/bedrock-knowledgeaase-pinecone/)
+[^2-0]: [Amazon Bedrock の Knowledge Bases を Pinecone 無料枠で構築してみた](https://benjamin.co.jp/blog/technologies/bedrock-knowledgeaase-pinecone/)
 [^2-1]: [AWS Marketplace の Pinecone を Amazon Bedrock のナレッジベースとして利用する](https://aws.amazon.com/jp/blogs/news/leveraging-pinecone-on-aws-marketplace-as-a-knowledge-base-for-amazon-bedrock/)
 [^2-2]: [Claude user document - Control output format](https://docs.anthropic.com/claude/docs/control-output-format#prefilling-claudes-response)
