@@ -22,7 +22,7 @@
   - [Knowledge Bases for Amazon Bedrock の構築（スキップ可能）](#knowledge-bases-for-amazon-bedrock-の構築スキップ可能)
   - [Advanced RAG による質問応答の実行](#advanced-rag-による質問応答の実行)
     - [実行例](#実行例)
-    - [advanced\_rag.py のアルゴリズム](#advanced_ragpy-のアルゴリズム)
+    - [advanced_rag.py のアルゴリズム](#advanced_ragpy-のアルゴリズム)
   - [Naive RAG による質問応答の実行](#naive-rag-による質問応答の実行)
     - [実行例](#実行例-1)
 - [Next Step](#next-step)
@@ -103,8 +103,8 @@ python advanced_rag.py --kb-id <Knowledge Bases の ID> --relevance-eval
 
 引数`--config-path`では，Advanced RAG で利用する LLM の設定ファイルやプロンプトテンプレートのパスを定義している．本リポジトリでは，以下の config ファイルを用意している．
 
-- [`config/config_claude-3.yaml`](https://github.com/ren8k/aws-bedrock-advanced-rag-baseline/blob/main/config/config_claude-3.yaml): Claude3 Haiku 用の cofig ファイル
-- [`config/config_command-r-plus.yaml`](https://github.com/ren8k/aws-bedrock-advanced-rag-baseline/blob/main/config/config_command-r-plus.yaml): Command R+ 用の cofig ファイル
+- [`config/config_claude-3.yaml`](https://github.com/ren8k/aws-bedrock-advanced-rag-baseline/blob/main/config/config_claude-3.yaml): Claude3 Haiku 用の config ファイル
+- [`config/config_command-r-plus.yaml`](https://github.com/ren8k/aws-bedrock-advanced-rag-baseline/blob/main/config/config_command-r-plus.yaml): Command R+ 用の config ファイル
 
 #### advanced_rag.py のアルゴリズム
 
@@ -128,7 +128,7 @@ step5. LLMによるテキスト生成
 | step4 | プロンプト拡張 | ---                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | step5 | テキスト生成   | - [`config/config/prompt_template/rag.yaml`](https://github.com/ren8k/aws-bedrock-advanced-rag-baseline/blob/main/config/llm/claude-3_rag.yaml) <br>- [`config/llm/claude-3_rag.yaml`](https://github.com/ren8k/aws-bedrock-advanced-rag-baseline/blob/main/config/prompt_template/rag.yaml)                                                                                                                                                                         |
 
-以降，各ステップにおける処理と各ステップで利用する cofig ファイルについて説明する．
+以降，各ステップにおける処理と各ステップで利用する config ファイルについて説明する．
 
 <details>
 <summary>step1. クエリ拡張</summary>
@@ -304,7 +304,7 @@ def eval_relevance_parallel(
     return results
 ```
 
-以下に利用している cofig ファイルを示す．
+以下に利用している config ファイルを示す．
 
 **`config/prompt_template/relevance_eval.yaml`**
 
