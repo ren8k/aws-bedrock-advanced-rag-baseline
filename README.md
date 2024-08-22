@@ -2,6 +2,11 @@
 
 本リポジトリでは，2024/05/01 に公開された AWS 公式ブログ「[Amazon Kendra と Amazon Bedrock で構成した RAG システムに対する Advanced RAG 手法の精度寄与検証](https://aws.amazon.com/jp/blogs/news/verifying-the-accuracy-contribution-of-advanced-rag-methods-on-rag-systems-built-with-amazon-kendra-and-amazon-bedrock/)」[^0-0]で紹介されている Advanced RAG の再現実装（Python）を公開している．なお，本実装は先日公開した[リポジトリ](https://github.com/ren8k/aws-bedrock-rag-baseline)[^0-1]をベースとしており，Naive RAG，Advanced RAG の両方を試行できるコードを用意している．
 
+> [!NOTE]
+> 本実装の解説記事を Qiita に投稿しております．
+> 是非そちらもご覧下さい！
+> <br>[Amazon Bedrock で Advanced RAG を実装する上での Tips](https://qiita.com/ren8k/items/dcdb7f0c61fda384c478)
+
 ## TL;DR<!-- omit in toc -->
 
 - boto3 ベースで Advanced RAG の実装を行った（以下概要図）．
